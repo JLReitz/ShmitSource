@@ -1,6 +1,6 @@
 #pragma once
 
-#include <StdIncludes.hpp>
+#include <ShmitCore/StdIncludes.hpp>
 
 namespace shmit
 {
@@ -17,6 +17,8 @@ public:
 
     const SharedPointer<T>& operator=(const SharedPointer<T>& rhs);
     const SharedPointer<T>& operator=(SharedPointer<T>&& rhs);
+
+    operator T*() const;
 
     T& operator*() const;
     T* operator->() const;
@@ -59,7 +61,7 @@ SharedPointer<T>::SharedPointer()
  * @brief SharedPointer<T> copy constructor. Links new instance to all others in ancestry.
  * 
  * @tparam T Data type to point at
- * @param rhs SharedPointer<T> with the same template type
+ * @param rhs SharedPointer<T> to copy
  */
 template <typename T>
 SharedPointer<T>::SharedPointer(const SharedPointer<T>& rhs)
@@ -70,10 +72,10 @@ SharedPointer<T>::SharedPointer(const SharedPointer<T>& rhs)
 }
 
 /**
- * @brief SharedPointer<T> move constructor. Links new instance to all others that represent the same subject.
+ * @brief SharedPointer<T> move constructor. Links new instance to all others in ancestry.
  * 
  * @tparam T Data type to point at
- * @param rhs SharedPointer<T> with the same template type
+ * @param rhs SharedPointer<T> to copy
  */
 template <typename T>
 SharedPointer<T>::SharedPointer(SharedPointer<T>&& rhs)
@@ -188,6 +190,12 @@ const SharedPointer<T>& SharedPointer<T>::operator=(SharedPointer<T>&& rhs)
 
     // Increment implementation count for when rhs inevitably is destructed
     (*mImplCount)++;
+}
+
+template <typename T>
+SharedPointer<T>::operator T*() const
+{
+    return mSubjectPtr;
 }
 
 template <typename T>
