@@ -4,13 +4,16 @@
 
 namespace shmit
 {
+namespace size
+{
 
-typedef enum
+typedef enum 
 {
     e8Bits  =   8,
     e16Bits =   16,
     e32Bits =   32,
     e64Bits =   64
-} PrimitiveSize_t;
+} Primitive;
 
+} // End namespace size
 }
