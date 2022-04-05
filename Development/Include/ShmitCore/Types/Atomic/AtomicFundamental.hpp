@@ -95,36 +95,43 @@ T AtomicFundamental<T>::operator^(const T& rhs) const
 template <typename T>
 T AtomicFundamental<T>::operator|=(const T& rhs) const
 {
-    unsigned short modifyCountRef;
-    T prevData;
+    T pre; // Pre-operation value
+    T post; // Post-operation value
     do
     {
-        modifyCountRef = mModifyCount;
-        prevData = mData;
+        pre = Get();
+        post = pre | rhs;
+    } while (!compare_and_swap(mData, pre, post));
 
-    } while (modifyCountRef != mModifyCount);
-
-    T newData = prevData | rhs;
-
-    mData = Get() | rhs;
-    mModifyCount++;
-    return Get();
+    return post;
 }
 
 template <typename T>
 T AtomicFundamental<T>::operator&=(const T& rhs) const
 {
-    mData = Get() & rhs;
-    mModifyCount++;
-    return Get();
+    T pre; // Pre-operation value
+    T post; // Post-operation value
+    do
+    {
+        pre = Get();
+        post = pre & rhs;
+    } while (!compare_and_swap(mData, pre, post));
+
+    return post;
 }
 
 template <typename T>
 T AtomicFundamental<T>::operator^=(const T& rhs) const
 {
-    mData = Get() ^ rhs;
-    mModifyCount++;
-    return Get();
+    T pre; // Pre-operation value
+    T post; // Post-operation value
+    do
+    {
+        pre = Get();
+        post = pre ^ rhs;
+    } while (!compare_and_swap(mData, pre, post));
+
+    return post;
 }
 
 }
