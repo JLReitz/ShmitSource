@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/Types/Atomic/AtomicNumeric.hpp>
+#include <ShmitCore/Types/Atomic/PrimitiveAtomic.hpp>
 
 namespace shmit
 {
@@ -27,7 +27,7 @@ protected:
 
     T* mContainerPtr;
     size_t mContainerSize;
-    AtomicNumeric<size_t> mAtomicElementCount;
+    AtomicULong mAtomicElementCount;
 
 private:
 
@@ -148,7 +148,7 @@ bool Container<T>::Peek(size_t index, T& elementOut) const
 template <typename T>
 bool Container<T>::Push(const T& element)
 {
-    // Quickly save spot by incrementing element count (atomically)
+    // Quickly save spot by atomically incrementing element count
     size_t incremenentedCount = mAtomicElementCount++;
 
     // Check to see if space has been over-booked

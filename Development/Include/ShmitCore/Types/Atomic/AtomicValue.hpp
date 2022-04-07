@@ -2,29 +2,10 @@
 
 #include <ShmitCore/StdIncludes.hpp>
 
+#include <ShmitCore/Platform/PrimitiveAtomic.hpp>
+
 namespace shmit
 {
-
-// TODO implement "atomic action" table that is basically a dumb circular queue
-// TODO for unit testing see saved photo "AtomicTesting.png"
-
-enum class AtomicAction : short
-{
-    eNoOp   = 0,
-
-    eSet    = 0x01,
-
-    eAdd    = 0x10
-};
-
-typedef struct
-{
-    AtomicAction mAction;
-
-    bool mIsReady;
-    bool mIsClaimed;
-} AtomicActionNode;
-
 
 template <typename T>
 class AtomicValue
@@ -37,16 +18,18 @@ public:
 
     virtual ~AtomicValue();
 
-    const T Get() const;
-    void Set(const T& set);
+    virtual const T Get() const;
+    virtual void Set(const T& set);
 
     operator T() const;
     const T operator=(const T& rhs);
 
 protected:
 
-    unsigned short mModifyCount;
+    volatile uint16_t mModifyCount;
     T* mData;
+
+    void AllocateData(const T& init);
 
 private:
 
@@ -76,13 +59,18 @@ template <typename T>
 AtomicValue<T>::AtomicValue(const T& init)
     : mModifyCount(0), mData(nullptr), mIsDynamicallyAllocated(true)
 {
-    // Allocate data pointer
-    // TODO platform allocation callback
+    AllocateData(init);
 }
 
+/**
+ * @brief Construct a new AtomicValue<T> object which contains a stack-located variable
+ * 
+ * @tparam T T Contained data type
+ * @param local Pointer to stack-located variable
+ */
 template <typename T>
 AtomicValue<T>::AtomicValue(T* const local)
-    : mModifyCount(0), mData(local), mIsDynamicallyAllocated(true)
+    : mModifyCount(0), mData(local), mIsDynamicallyAllocated(false)
 {
 }
 
@@ -106,14 +94,36 @@ template <typename T>
 const T AtomicValue<T>::Get() const
 {
     T toReturn;
-    unsigned short modifyCountRef;
+    uint16_t countRefBefore;
+    uint16_t countRefAfter;
     do
     {
-        modifyCountRef = mModifyCount
-        toReturn = *mData;
-    } while (modifyCountRef != mModifyCount);
+        countRefBefore = shmit::platform::atomic::Load(shmit::size::e16Bits, &mModifyCount);
+
+        toReturn = *mData; // TODO replace with load operation
+
+        countRefAfter = shmit::platform::atomic::Load(shmit::size::e16Bits, &mModifyCount);
+    } while (countRefBefore != countRefAfter);
     
     return toReturn;
+}
+
+template <typename T>
+void AtomicValue<T>::AllocateData(const T& init)
+{
+    // Allocate data pointer
+    // TODO platform allocation callback
+
+    // Make sure data was allocated
+    if (mData != nullptr)
+    {
+        *mData = init;
+    }
+    else
+    {
+        // Throw exception
+        // TODO
+    }
 }
 
 /**
@@ -125,8 +135,9 @@ const T AtomicValue<T>::Get() const
 template <typename T>
 void AtomicValue<T>::Set(const T& set)
 {
+    // TODO replace with store operation
     *mData = set;
-    mModifyCount++;
+    shmit::platform::atomic::FetchAndAdd(shmit::size::e16Bits, &mModifyCount, 1);
 }
 
 //  Operators   ///////////////////////////////////////////////////////////////////////////////////////////////////////

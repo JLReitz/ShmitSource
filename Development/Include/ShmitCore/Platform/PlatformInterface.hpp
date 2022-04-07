@@ -14,11 +14,9 @@ class PlatformInterface
 {
 public:
 
-    size_t CharSizeInBytes() const;
-    size_t ReferenceSizeInBytes() const;
-
     // Atomic operations
-    virtual size_t AtomicPrimitiveMaxSizeInBytes() const = 0;
+    virtual shmit::size::Primitive MaxAtomicPrimitiveSizeInBytes() const = 0;
+    virtual shmit::size::Primitive MinAtomicPrimitiveSizeInBytes() const = 0;
 
     virtual uint64_t AtomicLoad(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr) const = 0;
     virtual bool AtomicStore(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr, uint64_t store) = 0;
@@ -27,6 +25,8 @@ public:
                                       uint64_t compare, uint64_t swap) = 0;
     virtual uint64_t AtomicFetchAndAdd(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr, 
                                        uint64_t add) = 0;
+    virtual uint64_t AtomicFetchAndSubtract(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr, 
+                                            uint64_t sub) = 0;
 
 protected:
 
@@ -34,8 +34,6 @@ protected:
 
     const PlatformConfiguration& mPlatformConfig;
 };
-
-extern PlatformInterface* gStaticPlatformInterface;
 
 }
 }
