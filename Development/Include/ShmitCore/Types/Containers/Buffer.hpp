@@ -5,6 +5,11 @@
 namespace shmit
 {
 
+/**
+ * @brief A container that can let loose from the caboose
+ * 
+ * @tparam T Contained data type
+ */
 template <typename T>
 class Buffer : public Container
 {

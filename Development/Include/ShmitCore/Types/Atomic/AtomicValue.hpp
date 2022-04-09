@@ -10,6 +10,11 @@
 namespace shmit
 {
 
+/**
+ * @brief Guarantees wait-free thread-safe access to the contained data
+ * 
+ * @tparam T Contained data type
+ */
 template <typename T>
 class AtomicValue
 {
@@ -67,7 +72,7 @@ AtomicValue<T>::AtomicValue(const T& init)
 /**
  * @brief Construct a new AtomicValue<T> object which contains a stack-located variable
  * 
- * @tparam T T Contained data type
+ * @tparam T Contained data type
  * @param local Pointer to stack-located variable
  */
 template <typename T>
@@ -122,9 +127,9 @@ template <typename T>
 const T AtomicValue<T>::Get() const
 {
     // Lock the memory context to not allow other accesses during this operation
-    mMemoryContext->Lock();
+    mMemoryContext->EnterCritical();
     toReturn = *mData;
-    mMemoryContext->Unlock();
+    mMemoryContext->ExitCritical();
     
     return toReturn;
 }
@@ -139,9 +144,9 @@ template <typename T>
 void AtomicValue<T>::Set(const T& set)
 {
     // Lock the memory context to not allow other accesses during this operation
-    mMemoryContext->Lock();
+    mMemoryContext->EnterCritical();
     mData = set;
-    mMemoryContext->Unlock();
+    mMemoryContext->ExitCritical();
 }
 
 //  Operators   ///////////////////////////////////////////////////////////////////////////////////////////////////////

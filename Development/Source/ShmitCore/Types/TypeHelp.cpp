@@ -2,8 +2,6 @@
 
 namespace shmit
 {
-namespace platform
-{
 namespace help
 {
 
@@ -12,6 +10,11 @@ const size_t byteSizeInBits = 8; // Prove me wrong
 size_t staticPlatformCharSizeInBytes = 0;
 size_t staticPlatformReferenceSizeInBytes = 0;
 
+/**
+ * @brief Returns the size of a character type in bytes within this execution environment
+ * 
+ * @return size_t 
+ */
 size_t CharSizeInBytes()
 {
     // This condition should be run once upon the first time this function is called
@@ -24,6 +27,11 @@ size_t CharSizeInBytes()
     return staticPlatformCharSizeInBytes;
 }
 
+/**
+ * @brief Returns the size of a reference type in bytes within this execution environment
+ * 
+ * @return size_t 
+ */
 size_t ReferenceSizeInBytes()
 {
     // This condition should be run once upon the first time this function is called
@@ -45,6 +53,5 @@ size_t ReferenceSizeInBytes()
     return staticPlatformReferenceSizeInBytes;
 }
 
-}
 }
 }

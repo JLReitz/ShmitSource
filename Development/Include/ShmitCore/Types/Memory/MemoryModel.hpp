@@ -2,13 +2,16 @@
 
 #include <ShmitCore/StdIncludes.hpp>
 
-#include <ShmitCore/Types/Contex.hpp>
+#include <ShmitCore/Types/Context/Contex.hpp>
 #include <ShmitCore/Types/StdTypes.hpp>
 #include <ShmitCore/Types/TypeHelp.hpp>
 
 namespace shmit
 {
 
+/**
+ * @brief Provides architectural support for a section of memory
+ */
 class MemoryModel : public Context
 {
 public:

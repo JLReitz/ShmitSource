@@ -12,7 +12,7 @@ namespace atomic
 
 /**
  * Atomic operations ensure thread-safe access and/or modifications are made to targeted primitive data types.
- * The following operations can only be used on memory ranges defined by enum shmit::size::Primitive.
+ * The following operations can only be used on data sizes defined by enum shmit::size::Primitive.
  */
 
 uint64_t Load(shmit::size::Primitive size, shmit::MemoryAddress_t addr);

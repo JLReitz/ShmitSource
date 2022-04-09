@@ -5,6 +5,9 @@
 namespace shmit
 {
 
+/**
+ * @brief An interface for custom heap implementations
+ */
 class AllocationPool : public MemoryPool
 {
 public:

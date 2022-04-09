@@ -50,7 +50,7 @@ uint64_t FetchAndAdd(shmit::size::Primitive size, shmit::MemoryAddress_t addr, u
 }
 
 /**
- * @brief Exclusively subtracts to a value in memory and returns the result
+ * @brief Exclusively subtracts from a value in memory then stores and returns the result
  * 
  * @param size Size of accessed primitive data type, must be defined by enum shmit::size::Primitive
  * @param addr Address of the data

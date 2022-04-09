@@ -7,6 +7,9 @@
 namespace shmit
 {
 
+/**
+ * @brief Represents a section of memory
+ */
 class MemoryPool
 {
 public:
@@ -25,8 +28,8 @@ public:
 
 protected:
 
-    MemoryAddress_t mStartAddress;
-    MemoryAddress_t mEndAddress;
+    MemoryAddress_t mStartAddr;
+    MemoryAddress_t mEndAddr;
 };
 
 }

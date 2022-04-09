@@ -5,6 +5,11 @@
 namespace shmit
 {
 
+/**
+ * @brief Managed storage for one or more elements of the same type
+ * 
+ * @tparam T Contained data type
+ */
 template <typename T>
 class Container
 {

@@ -8,6 +8,10 @@ namespace shmit
 namespace platform
 {
 
+/**
+ * @brief Interface for platform atomic operations. An implementation must exist for the runtime environment in order 
+ *        for ShmitCore to function properly.
+ */
 class AtomicInterface
 {
 public:

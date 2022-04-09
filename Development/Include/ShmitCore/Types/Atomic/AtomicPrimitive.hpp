@@ -5,6 +5,11 @@
 namespace shmit
 {
 
+/**
+ * @brief Variant of shmit::AtomicValue which wraps a primitive (8, 16, 32, or 64 bit) data type
+ * 
+ * @tparam T Contained data type, size must be defined by enum shmit::size::Primitive
+ */
 template <typename T>
 class AtomicPrimitive : public AtomicValue<T>
 {
@@ -53,12 +58,23 @@ typedef AtomicPrimitive<unsigned long>  AtomicULong;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Construct an uninitialized AtomicPrimitive<T> object
+ * 
+ * @tparam T Contained data type, size must be defined by enum shmit::size::Primitive
+ */
 template <typename T>
 AtomicPrimitive<T>::AtomicPrimitive()
     : AtomicValue<T>()
 {
 }
 
+/**
+ * @brief Construct a new AtomicPrimitive<T> object
+ * 
+ * @tparam T Contained data type, size must be defined by enum shmit::size::Primitive
+ * @param init Initial value assigned to contained type
+ */
 template <typename T>
 AtomicPrimitive<T>::AtomicPrimitive(const T& init)
     : AtomicValue<T>(init)
@@ -79,6 +95,12 @@ AtomicPrimitive<T>::AtomicPrimitive(const T& init)
     }
 }
 
+/**
+ * @brief Construct a new AtomicPrimitive<T> object which contains a stack-located variable
+ * 
+ * @tparam T Contained data type, size must be defined by enum shmit::size::Primitive
+ * @param local Pointer to stack-located variable
+ */
 template <typename T>
 AtomicPrimitive<T>::AtomicPrimitive(T* const local)
     : AtomicValue<T>(local)
