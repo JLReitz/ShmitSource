@@ -4,8 +4,6 @@
 
 namespace shmit
 {
-namespace platform
-{
 namespace help
 {
 
@@ -19,6 +17,5 @@ size_t TypeSizeInBytes()
     return typeSizeInMemUnits * CharSizeInBytes();
 }
 
-}
 }
 }

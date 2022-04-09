@@ -4,8 +4,6 @@
 
 namespace shmit
 {
-namespace memory
-{
 
 class AllocationPool : public MemoryPool
 {
@@ -45,7 +43,7 @@ protected:
     virtual void PoolSpecificDeallocate(MemoryAddress_t address, size_t sizeInBytes) = 0;
 };
 
-//  Method Implementations  ///////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Top-level allocation method for all AllocationPool derivatives
@@ -89,5 +87,4 @@ void AllocationPool::Deallocate<T>(T* address, size_t iterations)
     }
 }
 
-}
 }

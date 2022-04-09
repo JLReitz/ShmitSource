@@ -1,24 +1,22 @@
 #pragma once
 
+#include "MemoryTypes.hpp"
+
 #include <ShmitCore/StdIncludes.hpp>
-#include <ShmitCore/Types/Memory/MemoryTypes.hpp>
 
 namespace shmit
-{
-namespace memory
 {
 
 class MemoryPool
 {
 public:
 
-    MemoryPool();
-    MemoryPool(MemoryAddress_t startAddr, size_t poolSizeInBytes);
+    MemoryPool(MemoryAddress_t startAddr, size_t poolSize);
     MemoryPool(MemoryAddress_t startAddr, MemoryAddress_t endAddr);
 
     virtual ~MemoryPool();
 
-    bool IsWithin(MemoryAddress_t check) const;
+    bool IsWithin(MemoryAddress_t addr) const;
 
     MemoryAddress_t StartAddress() const;
     MemoryAddress_t EndAddress() const;
@@ -28,8 +26,7 @@ public:
 protected:
 
     MemoryAddress_t mStartAddress;
-    size_t mPoolSizeInUnitsOfMemory;
+    MemoryAddress_t mEndAddress;
 };
 
-}
 }

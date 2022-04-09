@@ -2,7 +2,10 @@
 
 #include <ShmitCore/StdIncludes.hpp>
 
+#include <ShmitCore/Platform/MemoryHelp.hpp>
 #include <ShmitCore/Platform/PrimitiveAtomic.hpp>
+
+#include <ShmitCore/Types/TypeHelp.hpp>
 
 namespace shmit
 {
@@ -26,17 +29,15 @@ public:
 
 protected:
 
-    volatile uint16_t mModifyCount;
+    bool mIsDynamicallyAllocated;
+    shmit::MemoryModel* mMemoryContext;
     T* mData;
 
-    void AllocateData(const T& init);
-
-private:
-
-    bool mIsDynamicallyAllocated;
+    T* AllocateData(const T& init);
+    void DeallocateData(T* addr);
 };
 
-//  Method Implementations  ///////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Construct an uninitialized AtomicValue<T> object
@@ -59,7 +60,8 @@ template <typename T>
 AtomicValue<T>::AtomicValue(const T& init)
     : mModifyCount(0), mData(nullptr), mIsDynamicallyAllocated(true)
 {
-    AllocateData(init);
+    mData = AllocateData(init);
+    mMemoryContext = shmit::platform::memory::GetMemoryModel(mData);
 }
 
 /**
@@ -72,12 +74,38 @@ template <typename T>
 AtomicValue<T>::AtomicValue(T* const local)
     : mModifyCount(0), mData(local), mIsDynamicallyAllocated(false)
 {
+    mMemoryContext = shmit::platform::memory::GetMemoryModel(mData);
 }
 
 template <typename T>
 AtomicValue<T>::~AtomicValue()
 {
-    if (mIsDynamicallyAllocated)
+    DeallocateData(mData);
+}
+
+template <typename T>
+T*  AtomicValue<T>::AllocateData(const T& init)
+{
+    // Allocate data pointer
+    T* newData = nullptr; // TODO platform allocation callback
+
+    // Make sure data was allocated
+    // If exceptions are enabled and a bad allocation occurs this check should never be reached, you can never be too
+    // careful though
+    if (mData == nullptr)
+    {
+        // Jump to global hard-fault trap
+        // TODO
+    }
+
+    return newData;
+}
+
+template <typename T>
+void AtomicValue<T>::DeallocateData(T* addr)
+{
+    // Only proceed if the contained data was dynamically allocated and is valid
+    if (mIsDynamicallyAllocated && addr)
     {
         // Deallocate stored data
         // TODO platform deallocation callback
@@ -93,37 +121,12 @@ AtomicValue<T>::~AtomicValue()
 template <typename T>
 const T AtomicValue<T>::Get() const
 {
-    T toReturn;
-    uint16_t countRefBefore;
-    uint16_t countRefAfter;
-    do
-    {
-        countRefBefore = shmit::platform::atomic::Load(shmit::size::e16Bits, &mModifyCount);
-
-        toReturn = *mData; // TODO replace with load operation
-
-        countRefAfter = shmit::platform::atomic::Load(shmit::size::e16Bits, &mModifyCount);
-    } while (countRefBefore != countRefAfter);
+    // Lock the memory context to not allow other accesses during this operation
+    mMemoryContext->Lock();
+    toReturn = *mData;
+    mMemoryContext->Unlock();
     
     return toReturn;
-}
-
-template <typename T>
-void AtomicValue<T>::AllocateData(const T& init)
-{
-    // Allocate data pointer
-    // TODO platform allocation callback
-
-    // Make sure data was allocated
-    if (mData != nullptr)
-    {
-        *mData = init;
-    }
-    else
-    {
-        // Throw exception
-        // TODO
-    }
 }
 
 /**
@@ -135,9 +138,10 @@ void AtomicValue<T>::AllocateData(const T& init)
 template <typename T>
 void AtomicValue<T>::Set(const T& set)
 {
-    // TODO replace with store operation
-    *mData = set;
-    shmit::platform::atomic::FetchAndAdd(shmit::size::e16Bits, &mModifyCount, 1);
+    // Lock the memory context to not allow other accesses during this operation
+    mMemoryContext->Lock();
+    mData = set;
+    mMemoryContext->Unlock();
 }
 
 //  Operators   ///////////////////////////////////////////////////////////////////////////////////////////////////////

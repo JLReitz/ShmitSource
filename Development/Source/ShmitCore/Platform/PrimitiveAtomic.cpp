@@ -1,4 +1,4 @@
-#include <ShmitCore/Platform/PlatformInterface.hpp>
+#include <ShmitCore/Platform/Interfaces/AtomicInterface.hpp>
 #include <ShmitCore/Platform/PrimitiveAtomic.hpp>
 
 namespace shmit
@@ -8,30 +8,7 @@ namespace platform
 namespace atomic
 {
 
-extern PlatformInterface* gStaticPlatformInterface;
-
-bool CanBeAtomic(size_t typeSizeInBytes)
-{
-    // Check against uninitialized platform interface
-    if (!gStaticPlatformInterface)
-    {
-        return false;
-    }
-
-    shmit::size::Primitive maxPrimitiveSize = gStaticPlatformInterface->MaxAtomicPrimitiveSizeInBytes();
-    shmit::size::Primitive minPrimitiveSize = gStaticPlatformInterface->MinAtomicPrimitiveSizeInBytes();
-
-    // Iterate through the possible primitive sizes on this platform architecture
-    // If the provided size matches any of the defined primitives, then this type can be a primitive atomic
-    for (size_t size = minPrimitiveSize; size <= maxPrimitiveSize; size <<= 1)
-    {
-        if (typeSizeInBytes == size)
-            return true;
-    }
-
-    // If here, the type cannot be atomic
-    return false;
-}
+extern AtomicInterface* gStaticPlatformInterface;
 
 /**
  * @brief Exclusively compares a value in memory to what is expected and stores a new value if they match
@@ -42,10 +19,11 @@ bool CanBeAtomic(size_t typeSizeInBytes)
  * @param swap New value to store if compare is successful (max 64 bits)
  * @return true if successful, false if unsuccessful
  */
-bool CompareAndSwap(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr, uint64_t compare, uint64_t swap)
+bool CompareAndSwap(shmit::size::Primitive size, shmit::MemoryAddress_t addr, uint64_t compare, uint64_t swap)
 {
     if (!gStaticPlatformInterface)
     {
+        // TODO throw exception and log error
         return false;
     }
 
@@ -60,10 +38,11 @@ bool CompareAndSwap(shmit::size::Primitive size, shmit::memory::MemoryAddress_t 
  * @param add Value to add (max 64 bits)
  * @return uint64_t Maximum 64 bits returned
  */
-uint64_t FetchAndAdd(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr, uint64_t add)
+uint64_t FetchAndAdd(shmit::size::Primitive size, shmit::MemoryAddress_t addr, uint64_t add)
 {
     if (!gStaticPlatformInterface)
     {
+        // TODO throw exception and log error
         return 0;
     }
 
@@ -78,10 +57,11 @@ uint64_t FetchAndAdd(shmit::size::Primitive size, shmit::memory::MemoryAddress_t
  * @param sub Value to subtract (max 64 bits)
  * @return uint64_t 
  */
-uint64_t FetchAndSubtract(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr, uint64_t sub)
+uint64_t FetchAndSubtract(shmit::size::Primitive size, shmit::MemoryAddress_t addr, uint64_t sub)
 {
     if (!gStaticPlatformInterface)
     {
+        // TODO throw exception and log error
         return 0;
     }
 
@@ -95,10 +75,11 @@ uint64_t FetchAndSubtract(shmit::size::Primitive size, shmit::memory::MemoryAddr
  * @param addr Address of the data
  * @return uint64_t Maximum 64 bits returned
  */
-uint64_t Load(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr)
+uint64_t Load(shmit::size::Primitive size, shmit::MemoryAddress_t addr)
 {
     if (!gStaticPlatformInterface)
     {
+        // TODO throw exception and log error
         return 0;
     }
 
@@ -113,10 +94,11 @@ uint64_t Load(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr)
  * @param store Value to store (max 64 bits)
  * @return true if successful, false if unsuccessful
  */
-bool Store(shmit::size::Primitive size, shmit::memory::MemoryAddress_t addr, uint64_t store)
+bool Store(shmit::size::Primitive size, shmit::MemoryAddress_t addr, uint64_t store)
 {
     if (!gStaticPlatformInterface)
     {
+        // TODO throw exception and log error
         return false;
     }
 

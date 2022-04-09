@@ -2,8 +2,6 @@
 
 #include "AtomicValue.hpp"
 
-#include <ShmitCore/Platform/TypeHelp.hpp>
-
 namespace shmit
 {
 
@@ -53,7 +51,7 @@ typedef AtomicPrimitive<unsigned int>   AtomicUInt;
 typedef AtomicPrimitive<long>           AtomicLong;
 typedef AtomicPrimitive<unsigned long>  AtomicULong;
 
-//  Method Implementations  ///////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
 AtomicPrimitive<T>::AtomicPrimitive()
@@ -63,20 +61,20 @@ AtomicPrimitive<T>::AtomicPrimitive()
 
 template <typename T>
 AtomicPrimitive<T>::AtomicPrimitive(const T& init)
-    : AtomicValue<T>()
+    : AtomicValue<T>(init)
 {
-    // Make sure the templated type matches the requirements to be an atomic primitive
-    size_t typeSizeInBytes = shmit::platform::help::TypeSizeInBytes<T>();
-    if (shmit::platform::atomic::CanBeAtomic(typeSizeInBytes))
-    {
-        // Initialize normally
-        AllocateData(init);
+    // Exception or hard-fault trap will block the base class constructor from continuing if allocation fails
 
+    // Make sure the templated type matches the requirements to be an atomic primitive
+    if (mMemoryContext->IsPrimitive<T>())
+    {
+        // Now the size in bytes should cast to one of the shmit::size::Primitive enumerations
+        size_t typeSizeInBytes = shmit::platform::help::TypeSizeInBytes<T>();
         mPrimitiveTypeSize = static_cast<shmit::size::Primitive>(typeSizeInBytes);
     }
     else
     {
-        // Throw exception
+        // Enter platform hard-fault trap or throw fault
         // TODO
     }
 }
@@ -86,15 +84,15 @@ AtomicPrimitive<T>::AtomicPrimitive(T* const local)
     : AtomicValue<T>(local)
 {
     // Make sure the templated type matches the requirements to be an atomic primitive
-    size_t typeSizeInBytes = shmit::platform::help::TypeSizeInBytes<T>();
-    if (shmit::platform::atomic::CanBeAtomic(typeSizeInBytes))
+    if (mMemoryContext->IsPrimitive<T>())
     {
-        // Initialize normally
+        // Now the size in bytes should cast to one of the shmit::size::Primitive enumerations
+        size_t typeSizeInBytes = shmit::platform::help::TypeSizeInBytes<T>();
         mPrimitiveTypeSize = static_cast<shmit::size::Primitive>(typeSizeInBytes);
     }
     else
     {
-        // Throw exception
+        // Enter platform hard-fault trap or throw fault
         // TODO
     }
 }
