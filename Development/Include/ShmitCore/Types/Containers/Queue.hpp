@@ -32,12 +32,25 @@ protected:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Construct a new Queue<T> object
+ * 
+ * @tparam T Contained data type
+ * @param bufferSize Allocation size, defaults to 0 and maxes at 65,535
+ */
 template <typename T>
 Queue<T>::Queue(size_t queueSize)
     : Container<T>(queueSize), mFrontOfQueue(0)
 {
 }
 
+/**
+ * @brief Construct a new Queue<T> object
+ * 
+ * @tparam T Contained data type
+ * @param init Initial value assigned to all elements
+ * @param bufferSize Allocation size, defaults to 1 and maxes at 65,535
+ */
 template <typename T>
 Queue<T>::Queue(const T& init, size_t queueSize)
     : Container<T>(init, queueSize), mFrontOfQueue(0)
@@ -84,7 +97,7 @@ bool Queue<T>::IsFull() const
 }
 
 /**
- * @brief Non-destructive access to any element
+ * @brief Non-destructive access to any contained element
  * 
  * @tparam T Contained data type
  * @param index Element location

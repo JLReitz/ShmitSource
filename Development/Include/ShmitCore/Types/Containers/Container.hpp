@@ -110,7 +110,7 @@ bool Container<T>::IsFull() const
 }
 
 /**
- * @brief Non-destructive access to any element
+ * @brief Non-destructive access to any contained element
  * 
  * @tparam T Contained data type
  * @param index Element location

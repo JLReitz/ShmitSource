@@ -24,7 +24,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief Construct a new Buffer< T> object
+ * @brief Construct a new Buffer<T> object
  * 
  * @tparam T Contained data type
  * @param bufferSize Allocation size, defaults to 0 and maxes at 65,535
@@ -36,7 +36,7 @@ Buffer<T>::Buffer(uint16_t bufferSize)
 }
 
 /**
- * @brief Construct a new Buffer< T> object
+ * @brief Construct a new Buffer<T> object
  * 
  * @tparam T Contained data type
  * @param init Initial value assigned to all elements
