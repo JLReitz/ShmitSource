@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/Compute/FrameOfReference/FrameOfReferenceDataSet.hpp>
+#include <ShmitCore/Types/FrameOfReference/FrameOfReferenceDataSet.hpp>
 #include <ShmitCore/Compute/TransferFunction/TransferFunction.hpp>
 
 #include <vector>
