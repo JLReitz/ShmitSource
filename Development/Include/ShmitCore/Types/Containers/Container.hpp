@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/Types/Atomic/AtomicPrimitive.hpp>
+#include <ShmitCore/Platform/PrimitiveAtomic.hpp>
 
 namespace shmit
 {
@@ -15,28 +15,26 @@ class Container
 {
 public:
 
-    Container(size_t containerSize = 0);
-    Container(const T& init, size_t containerSize = 1);
-    Container(const Container& copy);
+    Container(uint16_t containerSize = 0);
+    Container(const T& init, uint16_t containerSize = 1);
 
     virtual ~Container();
 
     virtual bool Peek(size_t index, T& elementOut) const;
     virtual bool Push(const T& element);
 
-    bool IsFull() const;
-    size_t ElementCount() const;
+    virtual bool IsFull() const;
+    virtual size_t ElementCount() const;
     size_t Size() const;
 
 protected:
 
     T* mContainerPtr;
-    size_t mContainerSize;
-    AtomicULong mAtomicElementCount;
+    uint16_t mContainerSize;
+    uint16_t mBackOfContainer;
 
 private:
 
-    size_t mElementCount;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,11 +43,11 @@ private:
  * @brief Construct an new Container<T> object
  * 
  * @tparam T Contained data type
- * @param containerSize Allocation size, defaults to 0
+ * @param containerSize Allocation size, defaults to 0 and maxes at 65,535
  */
 template <typename T>
-Container<T>::Container(size_t containerSize)
-    : mContainerPtr(nullptr), mContainerSize(0), mElementCount(0), mAtomicElementCount(&mElementCount)
+Container<T>::Container(uint16_t containerSize)
+    : mContainerPtr(nullptr), mContainerSize(0), mBackOfContainer(0)
 {
     if (containerSize)
     {
@@ -64,11 +62,11 @@ Container<T>::Container(size_t containerSize)
  * 
  * @tparam T Contained data type
  * @param init Initial value assigned to all elements
- * @param containerSize Allocation size, defaults to 1
+ * @param containerSize Allocation size, defaults to 1 and maxes at 65,535
  */
 template <typename T>
-Container<T>::Container(const T& init, size_t containerSize)
-    : mContainerPtr(nullptr), mContainerSize(0), mElementCount(0), mAtomicElementCount(&mElementCount)
+Container<T>::Container(const T& init, uint16_t containerSize)
+    : mContainerPtr(nullptr), mContainerSize(0), mBackOfContainer(0)
 {
     // Container size must be at least 1
     if (containerSize < 1)
@@ -78,19 +76,7 @@ Container<T>::Container(const T& init, size_t containerSize)
 
     // TODO platform allocation callback
     // If allocation is successful, set container size accordingly
-}
-
-/**
- * @brief Container<T> copy constructor
- * 
- * @tparam T Contained data type
- * @param copy Container<T> object to copy
- */
-template <typename T>
-Container<T>::Container(const Container& copy)
-    : mContainerPtr(copy.mContainerPtr), mContainerSize(copy.mContainerSize), mElementCount(copy.mElementCount),
-      mAtomicElementCount(&mElementCount)
-{
+    // Set mBackOfContainer to 1
 }
 
 template <typename T>
@@ -108,7 +94,7 @@ Container<T>::~Container()
 template <typename T>
 size_t Container<T>::ElementCount() const
 {
-    return *mAtomicElementCount;
+    return mBackOfContainer;
 }
 
 /**
@@ -120,7 +106,7 @@ size_t Container<T>::ElementCount() const
 template <typename T>
 bool Container<T>::IsFull() const
 {
-    return (mAtomicElementCount == mContainerSize);
+    return (mBackOfContainer == mContainerSize);
 }
 
 /**
@@ -134,12 +120,18 @@ bool Container<T>::IsFull() const
 template <typename T>
 bool Container<T>::Peek(size_t index, T& elementOut) const
 {
-    if (index < mAtomicElementCount)
+    using namespace shmit::platform::atomic;
+    using namespace shmit::size;
+
+    // If the requested index fits within the back of the container, it is accessible
+    uint16_t backOfContainer = Load(e16Bits, &mBackOfContainer);
+    if (index < backOfContainer)
     {
         elementOut = mContainerPtr[index];
         return true;
     }
 
+    // Diagnostics -- warning
     return false;
 }
 
@@ -153,21 +145,27 @@ bool Container<T>::Peek(size_t index, T& elementOut) const
 template <typename T>
 bool Container<T>::Push(const T& element)
 {
-    // Quickly save spot by atomically incrementing element count
-    size_t incremenentedCount = mAtomicElementCount++;
+    using namespace shmit::platform::atomic;
+    using namespace shmit::size;
 
-    // Check to see if space has been over-booked
-    if(incremenentedCount >= mContainerSize)
+    // Quickly save spot by atomically incrementing element count
+    size_t backOfContainer = Load(e16Bits, &mBackOfContainer);
+    while ((backOfContainer < mContainerSize) && 
+           !CompareAndSwap(e16Bits, &mBackOfContainer, backOfContainer, backOfContainer + 1))
     {
-        // if it is, quickly decremement element count (atomically) again and return false for failed operation
-        mAtomicElementCount--;
-        return false;
+        backOfContainer = Load(e16Bits, &mBackOfContainer);
     }
 
-    // Otherwise, the push will be a success
-    // Load the new element in to the original index value before we incremented it
-    mContainerPtr[incremenentedCount - 1] = element;
-    return true;
+    // If the back of the container does not yet match the size, there is room to push
+    if (backOfContainer < mContainerSize)
+    {
+        mContainerPtr[backOfContainer] = element;
+        return true;
+    }
+
+    // Otherwise there is no room to push, return false
+    // Diagnostics -- warning
+    return false;
 }
 
 /**
