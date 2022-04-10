@@ -30,7 +30,7 @@ public:
 protected:
 
     bool mIsCritical;
-    uint16_t* mCriticalLock;
+    uint16_t mCriticalLock;
 
     virtual void TakeLock();
     virtual void ReleaseLock();
