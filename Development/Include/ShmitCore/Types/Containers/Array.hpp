@@ -5,6 +5,11 @@
 namespace shmit
 {
 
+/**
+ * @brief A container that acts and feels like a normal array with extra protection
+ * 
+ * @tparam T Contained data type
+ */
 template <typename T>
 class Array : public Container<T>
 {

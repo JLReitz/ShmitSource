@@ -6,7 +6,7 @@ namespace shmit
 {
 
 /**
- * @brief A container that can let loose from the caboose
+ * @brief A container that can let loose from the caboose. Some may also call it a "stack" and they would be... right
  * 
  * @tparam T Contained data type
  */
