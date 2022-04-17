@@ -10,7 +10,7 @@ namespace shmit
  * @param poolSize Size of the pool
  */
 MemoryPool::MemoryPool(MemoryAddress_t startAddr, size_t poolSize)
-    : mStartAddr(startAddr), mEndAddr(startAddr + poolSize)
+    : mStartAddr(startAddr), mEndAddr((char*)startAddr + poolSize)
 {
 }
 

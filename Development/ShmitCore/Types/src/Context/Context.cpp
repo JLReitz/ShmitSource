@@ -1,5 +1,3 @@
-#pragma once
-
 #include <ShmitCore/Platform/PrimitiveAtomic.hpp>
 
 #include <ShmitCore/Types/Context/Contex.hpp>
