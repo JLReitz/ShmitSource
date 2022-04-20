@@ -6,7 +6,7 @@ namespace shmit
 {
 
 /**
- * @brief A container that behaves like the line at the grocery store
+ * @brief A container that behaves like the line at the grocery store. Accesses and modifications are thread safe.
  * 
  * @tparam T Contained data type
  */
@@ -18,16 +18,26 @@ public:
     Queue(size_t queueSize = 0);
     Queue(const T& init, size_t queueSize = 1);
 
-    virtual bool Peek(size_t index, T& elementOut) const;    
-    virtual bool Pop(T& elementOut);
-    virtual bool Push(const T& element);
+    virtual bool Peek(size_t index, T& elementOut) const override;    
+    virtual bool Pop(T& elementOut) override;
+    virtual bool Push(const T& element) override;
 
-    virtual bool IsFull() const;
-    virtual size_t ElementCount() const;
+    virtual bool IsFull() const override;
+    virtual size_t ElementCount() const override;
+
+    virtual void Clear() override;
 
 protected:
 
-    uint16_t mFrontOfQueue;
+    // Flags to signal empty or full conditions
+    // Stored as uint8_t so that they are memory aligned for atomic operations
+    uint8_t mIsEmptyFlag;
+    uint8_t mIsFullFlag;
+
+    uint16_t mFrontOfQueue; // First poppable index
+    uint16_t mBackOfQueue; 
+    // ^ Last poppable index, this lags 'mBackOfContainer' and gates operations from accessing elements which may not
+    // be done updating
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,7 +50,7 @@ protected:
  */
 template <typename T>
 Queue<T>::Queue(size_t queueSize)
-    : Container<T>(queueSize), mFrontOfQueue(0)
+    : Container<T>(queueSize), mFrontOfQueue(0), mBackOfQueue(0), mIsEmptyFlag(true), mIsFullFlag(false)
 {
 }
 
@@ -53,12 +63,23 @@ Queue<T>::Queue(size_t queueSize)
  */
 template <typename T>
 Queue<T>::Queue(const T& init, size_t queueSize)
-    : Container<T>(init, queueSize), mFrontOfQueue(0)
+    : Container<T>(init, queueSize), mFrontOfQueue(0), mBackOfQueue(0), mIsEmptyFlag(true), mIsFullFlag(false)
 {
 }
 
 /**
- * @brief Returns number of contained elements
+ * @brief Atomically clears the contained elements
+ * 
+ * @tparam T Contained data type
+ */
+template <typename T>
+void Queue<T>::Clear()
+{
+    
+}
+
+/**
+ * @brief Returns number of contained elements. Value is atomically accessed.
  * 
  * @tparam T Contained data type
  * @return size_t 
@@ -67,19 +88,19 @@ template <typename T>
 size_t Queue<T>::ElementCount() const
 {
     uint16_t frontOfQueue = Load(e16Bits, &mFrontOfQueue);
-    uint16_t backOfQueue = Load(e16Bits, &mBackOfContainer);
+    uint16_t backOfContainer = Load(e16Bits, &mBackOfContainer);
 
-    // Unwrap back index if necessary
-    if (backOfQueue < frontOfQueue)
+    // Unwrap the back-of-container index if necessary
+    if (backOfContainer < frontOfQueue)
     {
-        backOfQueue += mContainerSize;
+        backOfContainer += mContainerSize;
     }
 
-    return backOfQueue - frontOfQueue;
+    return backOfContainer - frontOfQueue;
 }
 
 /**
- * @brief Checks vacancy status
+ * @brief Atomically checks vacancy status
  * 
  * @tparam T Contained data type
  * @return true if this instance is full, false if there is empty indexes
@@ -87,17 +108,11 @@ size_t Queue<T>::ElementCount() const
 template <typename T>
 bool Queue<T>::IsFull() const
 {
-    using namespace shmit::platform::atomic;
-    using namespace shmit::size;
-
-    uint16_t frontOfQueue = Load(e16Bits, &mFrontOfQueue);
-    uint16_t endOfQueue = (frontOfQueue == 0) ? mContainerSize - 1 : frontOfQueue - 1;
-    uint16_t backOfQueue = Load(e16Bits, &mBackOfContainer);
-    return (backOfQueue == endOfQueue);
+    return shmit::platform::atomic::Load(shmit::size::e8Bits, &mIsFullFlag);
 }
 
 /**
- * @brief Non-destructive access to any contained element
+ * @brief Atomic non-destructive access to any contained element
  * 
  * @tparam T Contained data type
  * @param index Element location
@@ -110,36 +125,43 @@ bool Queue<T>::Peek(size_t index, T& elementOut) const
     using namespace shmit::platform::atomic;
     using namespace shmit::size;
 
-    // Check for out-of-bounds condition
-    if (index >= mContainerSize)
+    // Check for empty or out-of-bounds conditions
+    bool isEmptyFlag = Load(e8Bits, &mIsEmptyFlag);
+    if (isEmptyFlag || (index >= mContainerSize))
     {
         // Diagnostics -- warning
         return false;
     }
 
-    // Atomically load the front of queue index and then add to the relative index
     uint16_t frontOfQueue = Load(e16Bits, &mFrontOfQueue);
-    index += frontOfQueue;
-    
-    // Account for index wrap-around
-    index %= mContainerSize;
+    uint16_t backOfQueue = Load(e16Bits, &mBackOfQueue);
+    bool isFullFlag = Load(e8Bits, &mIsFullFlag);
 
-    // If the requested index is not equal to the back of the queue, it is accessible
-    uint16_t backOfQueue = Load(e16Bits, &mBackOfContainer);
-    if (index != backOfQueue)
+    // Account for back-of-queue wrap-around by unwrapping
+    if (backOfQueue < frontOfQueue)
     {
-        elementOut = mContainerPtr[index];
-        return true;
+        backOfQueue += mContainerSize;
     }
 
-    // Else the requested index cannot be accessed
-    // Diagnostics -- warning
-    // Return false
-    return false;
+    // Check for out-of-bounds conditions past the back-of-queue index
+    // If the index extends past the back, it is not accessible
+    // If the index equals the back, it is only accessible when the full flag is also set
+    index += frontOfQueue;
+    if ((index > backOfQueue) || ((index == backOfQueue) && !mIsFullFlag))
+    {
+        // Diagnostics -- warning
+        return false;
+    }
+    
+    // Account for index wrap-around
+    // Because of the out-of-bounds checks above, we are assured that any wrapped index is <= back-of-queue
+    index %= mContainerSize;
+    elementOut = mContainerPtr[index];
+    return true;
 }
 
 /**
- * @brief Destructive access to the front element only
+ * @brief Atomic destructive access to the front element only
  * 
  * @param elementOut Data-out reference
  * @return true if successful, false if unsuccessful
@@ -150,32 +172,36 @@ bool Queue<T>::Pop(T& elementOut)
     using namespace shmit::platform::atomic;
     using namespace shmit::size;
 
-    // Attempt to increment the front of thr queue by 1, unless it is already behind the back of the queue
-    uint16_t backOfQueue = Load(e16Bits, &mBackOfContainer);
+    // Attempt to increment the front-of-queue by 1 until it is equal to the back-of-queue
     uint16_t frontOfQueue = Load(e16Bits, &mFrontOfQueue);
     uint16_t newFrontOfQueue = (frontOfQueue + 1) % mContainerSize;
-    uint16_t endOfQueue = (backOfQueue == 0) ? mContainerSize - 1 : backOfQueue - 1;
-    while ((frontOfQueue != endOfQueue) && !CompareAndSwap(e16Bits, &mFrontOfQueue, frontOfQueue, newFrontOfQueue))
+    uint16_t backOfQueue = Load(e16Bits, &mBackOfQueue);
+    while ((frontOfQueue != backOfQueue) && !CompareAndSwap(e16Bits, &mFrontOfQueue, frontOfQueue, newFrontOfQueue))
     {
-        backOfQueue = Load(e16Bits, &mBackOfContainer);
+        backOfQueue = Load(e16Bits, &mBackOfQueue);
         frontOfQueue = Load(e16Bits, &mFrontOfQueue);
         newFrontOfQueue = (frontOfQueue + 1) % mContainerSize;
-        endOfQueue = (backOfQueue == 0) ? mContainerSize - 1 : backOfQueue - 1;
     }
 
-    if (frontOfQueue != endOfQueue)
+    // If the front-of-queue is not equal to the back, there is something to pop
+    // If it is, attempt to set the empty flag
+    // Another thread may beat this one to the punch, if so this will fail as the queue is now empty
+    if ((frontOfQueue != backOfQueue) || CompareAndSwap(e8Bits, &mIsEmptyFlag, false, true))
     {
         elementOut = mContainerPtr[frontOfQueue];
+
+        // Attempt to clear the full flag, will fail silently
+        CompareAndSwap(e8Bits, &mIsFullFlag, true, false)
+
         return true;
     }
 
-    // If the front of the queue is already behind the back, there is nothing to pop
     // Diagnostics -- warning
     return false;
 }
 
 /**
- * @brief Push a new element to the back
+ * @brief Atomically pushes a new element to the back
  * 
  * @tparam T Contained data type
  * @param element 
@@ -187,26 +213,35 @@ bool Queue<T>::Push(const T& element)
     using namespace shmit::platform::atomic;
     using namespace shmit::size;
 
-    // Attempt to increment the back of the queue by 1, unless it is already behind the front of the queue
+    // Attempt to increment the back-of-container by 1 unless it is equal to the front
     uint16_t frontOfQueue = Load(e16Bits, &mFrontOfQueue);
-    uint16_t endOfQueue = (frontOfQueue == 0) ? mContainerSize - 1 : frontOfQueue - 1;
-    uint16_t backOfQueue = Load(e16Bits, &mBackOfContainer);
-    uint16_t newBackOfQueue = (backOfQueue + 1) % mContainerSize;
-    while ((backOfQueue != endOfQueue) && !CompareAndSwap(e16Bits, &mBackOfContainer, backOfQueue, newBackOfQueue))
+    uint16_t backOfContainer = Load(e16Bits, &mBackOfContainer);
+    uint16_t newbackOfContainer = (backOfContainer + 1) % mContainerSize;
+    while ((newBackOfContainer != frontOfQueue) && 
+           !CompareAndSwap(e16Bits, &mBackOfContainer, backOfContainer, newbackOfContainer))
     {
         frontOfQueue = Load(e16Bits, &mFrontOfQueue);
-        endOfQueue = (frontOfQueue == 0) ? mContainerSize - 1 : frontOfQueue - 1;
-        backOfQueue = Load(e16Bits, &mBackOfContainer);
-        newBackOfQueue = (backOfQueue + 1) % mContainerSize;
+        backOfContainer = Load(e16Bits, &mBackOfContainer);
+        newbackOfContainer = (backOfContainer + 1) % mContainerSize;
     }
 
-    if (backOfQueue != endOfQueue)
+    // If the new back-of-container index is not equal to the front, there is room to push
+    // If it is, attempt to set the full flag
+    // Another thread may beat this one to the punch, if so this will fail as there is no more room
+    if ((newBackOfContainer != frontOfQueue) || CompareAndSwap(e8Bits, &mIsFullFlag, false, true))
     {
-        mContainerPtr[newBackOfQueue] = element;
+        mContainerPtr[backOfContainer] = element;
+
+        // Block until the back of the queue is equal to the cached back of container, then update it to the new back
+        // of container
+        while (!CompareAndSwap(e16Bits, &mBackOfQueue, backOfContainer, newbackOfContainer));
+
+        // Attempt to clear the empty flag, will fail silently
+        CompareAndSwap(e8Bits, &mIsEmptyFlag, true, false)
+
         return true;
     }
 
-    // If the back of the queue is already behind the front, there is no room to push
     // Diagnostics -- warning
     return false;
 }

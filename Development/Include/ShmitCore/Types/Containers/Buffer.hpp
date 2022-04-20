@@ -6,7 +6,8 @@ namespace shmit
 {
 
 /**
- * @brief A container that can let loose from the caboose. Some may also call it a "stack" and they would be... right
+ * @brief A container that can let loose from the caboose. Some may also call it a "stack" and they would be... right.
+ *        Accesses and modifications are thread safe.
  * 
  * @tparam T Contained data type
  */
@@ -18,7 +19,7 @@ public:
     Buffer(uint16_t bufferSize = 0);
     Buffer(const T& init, uint16_t bufferSize = 1);
 
-    virtual bool Pop(T& elementOut);
+    virtual bool Pop(T& elementOut) override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,7 +50,7 @@ Buffer<T>::Buffer(const T& init, uint16_t bufferSize = 1)
 }
 
 /**
- * @brief Destructive access to the back element only
+ * @brief Atomic destructive access to the back element only
  * 
  * @param elementOut Data-out reference
  * @return true if successful, false if unsuccessful

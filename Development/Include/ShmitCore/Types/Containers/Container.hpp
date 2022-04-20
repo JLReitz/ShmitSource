@@ -6,7 +6,7 @@ namespace shmit
 {
 
 /**
- * @brief Managed storage for one or more elements of the same type
+ * @brief Managed storage for one or more elements of the same type. Accesses and modifications are thread safe.
  * 
  * @tparam T Contained data type
  */
@@ -27,14 +27,13 @@ public:
     virtual size_t ElementCount() const;
     size_t Size() const;
 
+    virtual void Clear();
+
 protected:
 
     T* mContainerPtr;
     uint16_t mContainerSize;
     uint16_t mBackOfContainer;
-
-private:
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,6 +85,17 @@ Container<T>::~Container()
 }
 
 /**
+ * @brief Atomically clears the contained elements
+ * 
+ * @tparam T Contained data type
+ */
+template <typename T>
+void Container<T>::Clear()
+{
+    shmit::platform::atomic::Store(shmit::size::e16Bits, &mBackOfContainer, 0);
+}
+
+/**
  * @brief Returns number of contained elements
  * 
  * @tparam T Contained data type
@@ -98,7 +108,7 @@ size_t Container<T>::ElementCount() const
 }
 
 /**
- * @brief Checks vacancy status
+ * @brief Atomically checks vacancy status
  * 
  * @tparam T Contained data type
  * @return true if this instance is full, false if there is empty indexes
@@ -110,7 +120,7 @@ bool Container<T>::IsFull() const
 }
 
 /**
- * @brief Non-destructive access to any contained element
+ * @brief Atomic non-destructive access to any contained element
  * 
  * @tparam T Contained data type
  * @param index Element location
@@ -136,7 +146,7 @@ bool Container<T>::Peek(size_t index, T& elementOut) const
 }
 
 /**
- * @brief Push a new element to the back
+ * @brief Atomically pushes a new element to the back
  * 
  * @tparam T Contained data type
  * @param element 

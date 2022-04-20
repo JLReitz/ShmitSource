@@ -6,7 +6,8 @@ namespace shmit
 {
 
 /**
- * @brief A container that acts and feels like a normal array with extra protection
+ * @brief A container that acts and feels like a normal array with extra protection. Accesses and modifications are 
+ *        thread safe.
  * 
  * @tparam T Contained data type
  */
