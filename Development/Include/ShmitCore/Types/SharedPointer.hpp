@@ -201,7 +201,7 @@ SharedPointer<T>::operator T*() const
 template <typename T>
 T& SharedPointer<T>::operator*() const
 {
-    return mSubjectPtr;
+    return *mSubjectPtr;
 }
 
 template <typename T>

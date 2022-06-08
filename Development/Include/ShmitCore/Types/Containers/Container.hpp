@@ -1,7 +1,9 @@
 #pragma once
 
 #include <ShmitCore/Platform/PrimitiveAtomic.hpp>
-
+#include <ShmitCore/Types/Allocators/AllocatedData.hpp>
+#include <ShmitCore/Types/Traits/TypeTraits.hpp>
+#include <ShmitCore/Types/Traits/AllocatorTraits.hpp>
 namespace shmit
 {
 
@@ -10,18 +12,24 @@ namespace shmit
  * 
  * @tparam T Contained data type
  */
-template <typename T>
-class Container
+template <typename T, class TYPE_TRAITS, class ALLOCATOR>
+class Container : protected AllocatedData<T, TYPE_TRAITS, ALLOCATOR>
 {
 public:
 
     Container(uint16_t containerSize = 0);
     Container(const T& init, uint16_t containerSize = 1);
+    Container(T* local, uint16_t containerSize = 1); // TODO
+
+    Container(Container<T>& rhs); // TODO
+    Container(Container<T>&& rhs); // TODO
 
     virtual ~Container();
 
     virtual bool Peek(size_t index, T& elementOut) const;
     virtual bool Push(const T& element);
+
+    bool Inject(Container<T>& rhs); // TODO
 
     virtual bool IsFull() const;
     virtual size_t ElementCount() const;
@@ -34,6 +42,8 @@ protected:
     T* mContainerPtr;
     uint16_t mContainerSize;
     uint16_t mBackOfContainer;
+
+    bool mIsDynamicallyAllocated;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,13 +56,14 @@ protected:
  */
 template <typename T>
 Container<T>::Container(uint16_t containerSize)
-    : mContainerPtr(nullptr), mContainerSize(0), mBackOfContainer(0)
+    : mContainerPtr(nullptr), mContainerSize(0), mBackOfContainer(0), mIsDynamicallyAllocated(false)
 {
     if (containerSize)
     {
         // If container allocation size is nonzero, reserve its spot in memory now
         // TODO platform allocation callback
         // If allocation is successful, set container size accordingly
+        // Set mIsDynamicallyAllocated to true
     }
 }
 
@@ -65,7 +76,7 @@ Container<T>::Container(uint16_t containerSize)
  */
 template <typename T>
 Container<T>::Container(const T& init, uint16_t containerSize)
-    : mContainerPtr(nullptr), mContainerSize(0), mBackOfContainer(0)
+    : mContainerPtr(nullptr), mContainerSize(0), mBackOfContainer(0), mIsDynamicallyAllocated(false)
 {
     // Container size must be at least 1
     if (containerSize < 1)
@@ -76,12 +87,16 @@ Container<T>::Container(const T& init, uint16_t containerSize)
     // TODO platform allocation callback
     // If allocation is successful, set container size accordingly
     // Set mBackOfContainer to 1
+    // Set mIsDynamicallyAllocated to true
 }
 
 template <typename T>
 Container<T>::~Container()
 {
-    // Do nothing, shared pointers should destruct themselves if appropriate
+    if (mIsDynamicallyAllocated)
+    {
+        // TODO Do something
+    }
 }
 
 /**

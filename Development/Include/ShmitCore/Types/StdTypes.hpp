@@ -4,6 +4,9 @@
 
 namespace shmit
 {
+
+typedef void* MemoryAddress;
+
 namespace size
 {
 
@@ -19,4 +22,4 @@ enum Primitive
 };
 
 } // End namespace size
-}
+} // End namespace shmit

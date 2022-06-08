@@ -75,7 +75,19 @@ Queue<T>::Queue(const T& init, size_t queueSize)
 template <typename T>
 void Queue<T>::Clear()
 {
-    
+    using namespace shmit::platform::atomic;
+    using namespace shmit::size;
+
+    // Set front-of-queue equal to back-of-queue
+    // Any threads attempting to pop will be denied
+    // Any threads attempting to push will still be able to
+    uint16_t backOfQueue = Load(e16Bits, &mBackOfQueue);
+    Store(e16Bits, &mFrontOfQueue, backOfQueue);
+
+    // Set the emtpy flag and clear the full flag
+    // Prioritize the empty flag, there is more time to clear the full flag before it's needed
+    Store(e8Bits, &mIsEmptyFlag, true); // Cleared by the next push
+    Store(e8Bits, &mIsFullFlag, false); // Not needed until the final push
 }
 
 /**
@@ -87,6 +99,9 @@ void Queue<T>::Clear()
 template <typename T>
 size_t Queue<T>::ElementCount() const
 {
+    using namespace shmit::platform::atomic;
+    using namespace shmit::size;
+    
     uint16_t frontOfQueue = Load(e16Bits, &mFrontOfQueue);
     uint16_t backOfContainer = Load(e16Bits, &mBackOfContainer);
 

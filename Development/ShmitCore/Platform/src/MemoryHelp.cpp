@@ -2,6 +2,9 @@
 
 #include <ShmitCore/Platform/Interfaces/MemoryInterface.hpp>
 
+#include <list>
+#include <vector>
+
 namespace shmit
 {
 namespace platform
