@@ -521,6 +521,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::_M_insert_fill(Buf
             }
 
             // Cache the absolute index to insert in reverse from then leapfrog the destination index to 1 past that
+            // to reserve the space
             insertIndex = _M_roll_over_forward(destinationIndex, n - 1);
             LOG("Insert from " << destinationIndex << " -> " << insertIndex)
             destinationIndex = _M_roll_over_forward(insertIndex, 1);
