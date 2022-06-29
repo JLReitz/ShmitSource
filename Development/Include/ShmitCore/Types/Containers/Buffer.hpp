@@ -43,6 +43,8 @@ public:
     ~Buffer();
 
     size_t size() noexcept;
+    void resize(size_t n);
+
     bool empty() noexcept;
     bool full() noexcept;
 
@@ -72,6 +74,7 @@ public:
     iterator insert(iterator position, const T& value);
     iterator insert(iterator position, T&& value);
     iterator insert(iterator position, size_t n, const T& value);
+    iterator insert(iterator position, size_t n, T&& value);
     iterator insert(iterator position, iterator i, iterator j);
     iterator insert(iterator position, std::initializer_list<T> il); // TODO define
     
@@ -131,7 +134,10 @@ private:
     iterator _M_insert_single(iterator position, Arg&& value);
 
     template <typename Arg>
-    iterator _M_insert_fill_reverse(T* dataPtr, size_t start, size_t n, Arg&& value);
+    void _M_fill_forward(iterator position, size_t n, Arg&& value);
+
+    template <typename Arg>
+    void _M_fill_reverse(iterator position, size_t n, Arg&& value);
 
     Allocator mAllocator;
 };
@@ -169,7 +175,7 @@ Buffer<T, Allocator>::Buffer(size_t bufferSize, const Allocator& allocator)
         mStartAddress = _M_allocate_buffer(bufferSize);
         mBufferSize = bufferSize;
 
-        LOG("Buffer of size " << mBufferSize << " created at " << std::hex << (uint64_t)mStartAddress.load() << std::dec)
+        LOG("Buffer of size " << mBufferSize << " created at " << std::hex << (uint64_t)mStartAddress << std::dec)
     }
 }
 
@@ -181,14 +187,16 @@ Buffer<T, Allocator>::Buffer(size_t bufferSize, const T& init, const Allocator& 
     if (bufferSize > 0)
     {
         // Allocate storage for the container
+        // Set back of buffer to the end of the available space and raise full flag
         mStartAddress = _M_allocate_buffer(bufferSize);
         mBufferSize = bufferSize;
+        mBackOfBuffer = bufferSize - 1;
+        mIsFullFlag = true;
 
         // Construct elements in the buffer
+        // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
         for (int i = 0; i < mBufferSize; i++)
-        {
             _alloc_traits::construct(mAllocator, (T*)mStartAddress + i, init);
-        }
     }
 }
 
@@ -199,13 +207,14 @@ Buffer<T, Allocator>::~Buffer()
     size_t curr = mFrontOfBuffer;
     while (curr != mBufferSize)
     {
-        _alloc_traits::destroy(mAllocator, (T*)mStartAddress.load() + curr);
+        _alloc_traits::destroy(mAllocator, (T*)mStartAddress + curr);
         curr = _M_move_index_forward(curr, 1);
     }
 
     // Deallocate buffer
+    // Need to typecast 'mStartAddress' from void*
     if (mStartAddress)
-        _alloc_traits::deallocate(mAllocator, (T*)mStartAddress.load(), mBufferSize);
+        _alloc_traits::deallocate(mAllocator, (T*)mStartAddress, mBufferSize);
 }
 
 template <typename T, class Allocator>
@@ -218,7 +227,7 @@ T& Buffer<T, Allocator>::at(size_t index)
     }
 
     uint16_t frontOfBuffer = mFrontOfBuffer;
-    uint16_t backOfBuffer = _M_normalize_index(mBackOfBuffer);
+    uint16_t backOfBuffer = _M_wrap_index(mBackOfBuffer);
     index += frontOfBuffer;
 
     // Check for out-of-bounds conditions past the back-of-buffer index
@@ -241,7 +250,7 @@ template <typename T, class Allocator>
 T& Buffer<T, Allocator>::back()
 {
     // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
-    return *((T*)mStartAddress.load() + mBackOfBuffer);
+    return *((T*)mStartAddress + mBackOfBuffer);
 }
 
 template <typename T, class Allocator>
@@ -290,7 +299,7 @@ template <typename T, class Allocator>
 T& Buffer<T, Allocator>::front()
 {
     // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
-    return *((T*)mStartAddress.load() + mFrontOfBuffer);
+    return *((T*)mStartAddress + mFrontOfBuffer);
 }
 
 template <typename T, class Allocator>
@@ -303,30 +312,29 @@ template <typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator 
     Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position, const T& value)
 {
-    // If the position is the end or beginning of the buffer, perform a push.
-    // These access operations won't move any data around and thus no temporary copy of the value reference is
-    // required.
+    // Make a copy of the reference value, it could exist in the buffer already and be affected by the 
+    // moving/truncating of elements
+    T copyOfValue = value;
+
+    // If the position is the back or beginning of the buffer, perform a push
     if (position == begin())
     {
-        return _M_insert_fill_front(1, value);
+        return _M_insert_fill_front(1, copyOfValue);
     }
     else if (position == end())
     {
-        return _M_insert_fill_back(1, value);
+        return _M_insert_fill_back(1, copyOfValue);
     }
 
-    // Otherwise call the random-access insert routine.
-    // Make a copy of the reference value, it could exist in the buffer already and be affected by the moving of 
-    // elements.
-    T copyOfValue = value;
-    return _M_insert_single(position, std::move(copyOfValue));
+    // Otherwise call the random-access insert routine
+    return _M_insert_fill(position, 1, copyOfValue);
 }
 
 template <typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator 
     Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position, T&& value)
 {    
-    // If the position is the end or beginning of the buffer, perform a push
+    // If the position is the back or beginning of the buffer, perform a push
     if (position == begin())
     {
         return _M_insert_fill_front(1, std::forward<T>(value));
@@ -337,14 +345,47 @@ typename Buffer<T, Allocator>::iterator
     }
 
     // Otherwise call the random-access insert routine
-    return _M_insert_single(position, std::forward<T>(value));
+    return _M_insert_fill(position, 1, std::forward<T>(value));
 }
 
 template <typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator 
     Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position, size_t n, const T& value)
 {
-    
+    // Make a copy of the reference value, it could exist in the buffer already and be affected by the 
+    // moving/truncating of elements
+    T copyOfValue = value;
+
+    // If the position is the back or beginning of the buffer, perform a push
+    if (position == begin())
+    {
+        return _M_insert_fill_front(n, copyOfValue);
+    }
+    else if (position == end())
+    {
+        return _M_insert_fill_back(n, copyOfValue);
+    }
+
+    // Otherwise call the random-access insert routine
+    return _M_insert_fill(position, n, copyOfValue);
+}
+
+template <typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator 
+Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position, size_t n, T&& value)
+{
+    // If the position is the back or beginning of the buffer, perform a push
+    if (position == begin())
+    {
+        return _M_insert_fill_front(n, std::forward<T>(value));
+    }
+    else if (position == end())
+    {
+        return _M_insert_fill_back(n, std::forward<T>(value));
+    }
+
+    // Otherwise call the random-access insert routine
+    return _M_insert_fill(position, n, std::forward<T>(value));
 }
 
 // template <typename T, class Allocator>
@@ -393,34 +434,15 @@ void Buffer<T, Allocator>::pop_front() noexcept
     }
 }
 
-// template <typename T>
-// T ClearLeaveOrAdd(std::atomic<T>& value, bool clear, bool leave)
-// {
-//     T tmp = value;
-//     if (clear)
-//     {
-//         value = 0;
-//     }
-//     else if (!leave)
-//     {
-//         value++;
-//     }
-
-//     return value;
-// }
-
-// // Checks clear condition and leave condition, then adds if neither passes
-// #define ClearLeaveOrAdd_Sequential(value, clearCondition, leaveCondition) \
-//     (clearCondition) ? ClearLeaveOrAdd(value, true, false) : \
-//     ((leaveCondition) ? ClearLeaveOrAdd(value, false, true) : ClearLeaveOrAdd(value, false, false))
-
 template <typename T, class Allocator>
 void Buffer<T, Allocator>::push_back(const T& value)
 {
     LOG("Pushing back")
-    // These access operations won't move any data around and thus no temporary copy of the value reference is
-    // required.
-    _M_insert_fill_back(1, value);
+
+    // Make a copy of the reference value, it could exist in the buffer already and be affected by the 
+    // moving/truncating of elements
+    T copyOfValue = value;
+    _M_insert_fill_back(1, copyOfValue);
 }
 
 template <typename T, class Allocator>
@@ -434,9 +456,11 @@ template <typename T, class Allocator>
 void Buffer<T, Allocator>::push_front(const T& value)
 {
     LOG("Pushing front")
-    // These access operations won't move any data around and thus no temporary copy of the value reference is
-    // required.
-    _M_insert_fill_front(1, value);
+
+    // Make a copy of the reference value, it could exist in the buffer already and be affected by the 
+    // moving/truncating of elements
+    T copyOfValue = value;
+    _M_insert_fill_front(1, copyOfValue);
 }
 
 template <typename T, class Allocator>
@@ -447,12 +471,36 @@ void Buffer<T, Allocator>::push_front(T&& value)
 }
 
 template <typename T, class Allocator>
+void Buffer<T, Allocator>::resize(size_t n)
+{
+    T* newBuffer = _M_allocate_buffer(n);
+
+    // Copy current buffer data to the new buffer
+    size_t destinationIndex = mFrontOfBuffer;
+    iterator currentIt = begin();
+    iterator endIt = end();
+    while (currentIt != endIt)
+    {
+        newBuffer[destinationIndex] = *currentIt;
+        currentIt++;
+        destinationIndex = _M_roll_over_forward(destinationIndex, 1);
+    }
+
+    // Swap old buffer start address for new
+    T* old = (T*)mStartAddress;
+    mStartAddress = newBuffer;
+    mBufferSize = n;
+
+    _alloc_traits::deallocate(mAllocator, (T*)old, mBufferSize);
+}
+
+template <typename T, class Allocator>
 size_t Buffer<T, Allocator>::size() noexcept
 {
     if (mIsFullFlag)
         return mBufferSize;
 
-    return _M_normalize_index(mBackOfBuffer) - _M_normalize_index(mFrontOfBuffer);
+    return _M_wrap_index(mBackOfBuffer) - _M_wrap_index(mFrontOfBuffer);
 }
 
 template <typename T, class Allocator>
@@ -470,12 +518,11 @@ typename Buffer<T, Allocator>::reverse_iterator Buffer<T, Allocator>::rend() noe
 template <typename T, class Allocator>
 T& Buffer<T, Allocator>::operator[](size_t index) noexcept
 {
-    // Offset the index from the start of buffer, then account for wrap-around
-    index += mFrontOfBuffer;
-    index %= mBufferSize;
+    // Offset the index from the start of buffer
+    index = _M_roll_over_forward(mFrontOfBuffer, index);
     
     // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
-    return *((T*)mStartAddress.load() + index);
+    return *((T*)mStartAddress + index);
 }
 
 template <typename T, class Allocator>
@@ -497,132 +544,86 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::_M_insert_fill(Buf
 {
     LOG("Inserting " << n << " element[s]")
 
-    // First, allocate a destination for the current buffer contents + the inserted value
-    T* bufferDestination = _M_allocate_buffer(mBufferSize);
-    LOG("Allocated replacement buffer at " << std::hex << (uint64_t)bufferDestination << std::dec)
-
-    long rollOverDiff = (size() + n) - max_size();
-
-    size_t destinationIndex = 0;
-    size_t insertIndex = 0;
-    iterator currentIt = begin();
-    iterator endIt = end();
-    while (currentIt != endIt)
+    if (n >= mBufferSize)
     {
-        if (currentIt == position)
-        {
-            if (rollOverDiff > 0)
-            {
-                // Calculate the number of steps the front of buffer will need to be rolled over
-                size_t frontShift = n - (_M_normalize_index(mBackOfBuffer) - _M_normalize_index(destinationIndex)) - 1;
-                mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, frontShift);
-                LOG("Buffer overflow detected")
-                LOG("Moving front of buffer -> " << mFrontOfBuffer)
-            }
+        LOG("Buffer overfill detected")
 
-            // Cache the absolute index to insert in reverse from then leapfrog the destination index to 1 past that
-            // to reserve the space
-            insertIndex = _M_roll_over_forward(destinationIndex, n - 1);
-            LOG("Insert from " << destinationIndex << " -> " << insertIndex)
-            destinationIndex = _M_roll_over_forward(insertIndex, 1);
+        // Fill in the entire buffer starting from the updated back and set the full flag
+        size_t mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Back of buffer sits behind front when full
+        mIsFullFlag = true;
+
+        LOG("Moving back of buffer -> " << mBackOfBuffer)
+        LOG("Setting full flag")
+
+        // Cap n at the buffer size, anything over will be redundant
+        n = mBufferSize;
+    }
+    else
+    {
+        // Cache the index where the last valid element is in the original data contents
+        size_t lastValidElementIndex = (mIsFullFlag) ? mBackOfBuffer : _M_roll_over_backward(mBackOfBuffer, 1);
+        LOG("Caching last valid element at " << lastValidElementIndex)
+        
+        // Update the back of buffer, do not allow overflow
+        size_t newBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, n);
+        LOG("New back of buffer -> " << newBackOfBuffer)
+        // If the new back of buffer has overflowed the front its wrapped position will be less than the original's
+        if (_M_wrap_index(newBackOfBuffer) < _M_wrap_index(mBackOfBuffer))
+        {
+            LOG("New back of buffer overflows front")
+            newBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Keep back behind front
+            mIsFullFlag = true;                                         // The resultant buffer will be full
+            LOG("New back of buffer -> " << newBackOfBuffer)
         }
 
-        if (destinationIndex < mBufferSize)
+        mBackOfBuffer = newBackOfBuffer;
+        LOG("Back of buffer -> " << mBackOfBuffer)
+
+        // 'position' is the first slot of the insert zone, find the last
+        iterator insertZoneEnd = position + (n - 1);
+        if (insertZoneEnd == end())
         {
-            bufferDestination[destinationIndex] = *currentIt;
-            currentIt++;
-            destinationIndex = _M_roll_over_forward(destinationIndex, 1);
+            LOG("End of insert zone overflows front")
+
+            // If elements to be inserted will overflow the front, we must truncate
+            size_t openInsertSlots = insertZoneEnd - position;
+            size_t overFlowDiff = n - openInsertSlots;
+            LOG("Moving front and back forward by " << overFlowDiff)
+            mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, overFlowDiff);
+            mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1);
+            LOG("Front of buffer -> " << mFrontOfBuffer)
+            LOG("Back of buffer -> " << mBackOfBuffer)
         }
         else
-            break;
-    }
-
-    // Insert new elements at the insert index
-    iterator justInserted = _M_insert_fill_reverse(bufferDestination, insertIndex, n, std::forward<Arg>(value));
-
-    long rollOverDiff = (size() + n) - max_size();
-    if (rollOverDiff >= 0)
-    {
-        // If here, the output state of the buffer is full
-        // Back of buffer is right behind the front
-        mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1);        
-        mIsFullFlag = true;
-        LOG("Setting full flag")
-    }
-    else
-    {
-        // Roll the back of buffer forward by the number of elements inserted
-        mBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, n);
-    }
-    
-    LOG("Moving back of buffer -> " << mBackOfBuffer)
-
-    return justInserted;
-}
-
-template <typename T, class Allocator>
-template <typename Arg> // T& or T&&
-typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::_M_insert_single(typename Buffer<T, Allocator>::iterator position, 
-                                                                               Arg&& value)
-{
-    LOG("Inserting single element")
-    // First, allocate a destination for the current buffer contents + the inserted value
-    T* bufferUpdate = _M_allocate_buffer(mBufferSize);
-    LOG("Allocated replacement buffer at " << std::hex << (uint64_t)bufferUpdate << std::dec)
-
-    // Check for insert overflow
-    // If the buffer is full, start by decrementing the back of buffer by 1 to make room for this new element
-    if (mIsFullFlag)
-    {
-        LOG("Buffer overflow detected")
-        mBackOfBuffer = _M_roll_over_backward(mBackOfBuffer, 1);
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
-    }
-
-    // Next, copy data in to the destination, including the inserted value at the provided position
-    size_t i = mFrontOfBuffer;
-    size_t insertIndex = 0;
-    iterator current = begin();
-    iterator currentEnd = end();
-    while (current != currentEnd)
-    {
-        if (current == position)
         {
-            // Insert the new value in to the provided position
-            // Cache the abosolute index of that position
-            insertIndex = i;
-            bufferUpdate[insertIndex] = value;
-            i = _M_roll_over_forward(i, 1);
-            LOG("Inserting " << value << " at index " << insertIndex)
+            // Else, there is room after the insert zone for more data
+            // Copy as much preexisting data behind 'position' as is possible without truncating anything before
+            iterator dest = end() - 1;                      // New back of buffer
+            iterator source(*this, lastValidElementIndex);  // Original back of buffer
+
+            // Determine if any of the slots to copy will need to be truncated
+            size_t slotsToCopy = (source - position) + 1;
+            LOG("Slots to copy: " << slotsToCopy)
+            size_t openCopySlots = dest - insertZoneEnd;
+            LOG("Open copy slots: " << openCopySlots)
+            if (openCopySlots < slotsToCopy)
+            {
+                size_t backTruncateDiff = slotsToCopy - openCopySlots;
+                source -= backTruncateDiff;
+                LOG("Back truncated by " << backTruncateDiff << " slots")
+            }
+
+            LOG("Moving old data")
+            while (dest > insertZoneEnd)
+                *dest-- = *source--;
         }
-
-        bufferUpdate[i] = *current;
-        current++;
-        i = _M_roll_over_forward(i, 1);
     }
 
-    // Increment the back of buffer or set the full flag if necessary
-    size_t newBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, 1);
-    if (newBackOfBuffer == mFrontOfBuffer)
-    {
-        mIsFullFlag = true;
-        LOG("Setting full flag")
-    }
-    else
-    {
-        mBackOfBuffer = newBackOfBuffer;
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
-    }
+    // Fill in the insert zone
+    LOG("Filling insert zone")
+    _M_fill_forward(position, n, std::forward<Arg>(value));
 
-    // Finally, store the address of the updated buffer contents and delete the old buffer
-    T* oldBuffer = (T*)mStartAddress.load();
-    mStartAddress = bufferUpdate;
-
-    LOG("Removing old buffer contents at " << std::hex << (uint64_t)oldBuffer << std::dec)
-    _alloc_traits::deallocate(mAllocator, oldBuffer, mBufferSize);
-
-    // Return an iterator representing the inserted element
-    return iterator(*this, insertIndex);
+    return position;
 }
 
 template <typename T, class Allocator>
@@ -630,41 +631,36 @@ template <typename Arg> // T& or T&&
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::_M_insert_fill_back(size_t n, Arg&& value)
 {
     LOG("Inserting " << n << " element[s] back")
-    long rollOverDiff = (size() + n) - max_size();
-    if (rollOverDiff > 0)
+
+    iterator insertZoneStart(*this, mBackOfBuffer);
+    size_t resultSize = size() + n;
+    LOG("Resulting buffer size " << resultSize)
+    if (resultSize >= mBufferSize)
     {
-        LOG("Buffer overflow detected")
-
-        // Increment front of buffer by the rollover difference to accomodate new data
-        // Increment the back of buffer by 1 to preserve the current back element
-        mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, rollOverDiff);
-        mBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, 1);
-        LOG("Moving front of buffer -> " << mFrontOfBuffer)
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
-    }
-
-    // Calculate the last index to insert at
-    size_t endIndex = _M_roll_over_forward(mBackOfBuffer, n - 1);
-    LOG("Insert from " << mBackOfBuffer << " -> " << endIndex)
-
-    // Insert in reverse, starting from the final insert index to the starting back of buffer
-    iterator justInserted = _M_insert_fill_reverse((T*)mStartAddress.load(), endIndex, n, std::forward<Arg>(value));
-
-    if (rollOverDiff >= 0)
-    {
+        if (resultSize > mBufferSize)
+        {        
+            // Increment front of buffer by the rollover difference to accomodate new data
+            size_t rollOverDiff = resultSize - mBufferSize;
+            LOG("Buffer overflow detected -> rollover: " << rollOverDiff)
+            mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, (size_t)rollOverDiff);
+            LOG("Moving front of buffer -> " << mFrontOfBuffer)
+        }
+        
+        // The resulting buffer will be full, set the back of buffer 1 ahead of the front
+        mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1);
         mIsFullFlag = true;
-        mBackOfBuffer = endIndex;
         LOG("Setting full flag")
     }
     else
-    {
-        mBackOfBuffer = _M_roll_over_forward(endIndex, 1);
-    }
+        mBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, n);
+
     
     LOG("Moving back of buffer -> " << mBackOfBuffer)
 
-    // Return an iterator to the first of the newly inserted values
-    return justInserted;
+    // Fill in insert zone
+    _M_fill_forward(insertZoneStart, n, std::forward<Arg>(value));
+
+    return insertZoneStart;
 }
 
 template <typename T, class Allocator>
@@ -672,53 +668,79 @@ template <typename Arg> // T& or T&&
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::_M_insert_fill_front(size_t n, Arg&& value)
 {
     LOG("Inserting " << n << " element[s] front")
-    long rollOverDiff = (size() + n) - max_size();
-    if (rollOverDiff > 0)
-    {
-        LOG("Buffer overflow detected")
 
-        // Decrement back of buffer by the rollover difference to accomodate new data
-        // Decrement front of buffer once
+    size_t resultSize = size() + n;
+    LOG("Resulting buffer size " << resultSize)
+    if (resultSize >= mBufferSize)
+    {
+        // The resulting buffer will be full
+        size_t rollOverDiff = 0;
+        if (resultSize > mBufferSize)
+        {
+            // If the insertion will overflow the buffer, determine how many elements need to be truncated
+            rollOverDiff = resultSize - mBufferSize;
+            LOG("Buffer overflow detected -> rollover: " << rollOverDiff)
+        }
+        else if (!mIsFullFlag) // If the buffer is not currently full, back of buffer can be decremented by 1
+            rollOverDiff++; 
+        
+        // Truncate back elements if necessary
+        // The front of buffer is then 1 behind the back of buffer
         mBackOfBuffer = _M_roll_over_backward(mBackOfBuffer, rollOverDiff);
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
-    }
-
-    // Calculate the last index to insert at
-    size_t endIndex = _M_roll_over_backward(mFrontOfBuffer, n);
-    size_t startIndex = _M_roll_over_backward(mFrontOfBuffer, 1);
-    LOG("Insert from " << endIndex << " -> " << startIndex)
-
-    // Insert in reverse, ending with the final front of buffer
-    iterator justInserted = _M_insert_fill_reverse((T*)mStartAddress.load(), startIndex, n, std::forward<Arg>(value));
-
-    mFrontOfBuffer = endIndex;
-
-    if (rollOverDiff >= 0)
-    {
+        mFrontOfBuffer = _M_roll_over_forward(mBackOfBuffer, 1);
         mIsFullFlag = true;
         LOG("Setting full flag")
+        LOG("Moving back of buffer -> " << mBackOfBuffer)
     }
+    else
+        mFrontOfBuffer = _M_roll_over_backward(mFrontOfBuffer, n);
 
-    return justInserted;
+    
+    LOG("Moving front of buffer -> " << mFrontOfBuffer)
+
+    // Fill in insert zone
+    iterator insertZoneStart(*this, mFrontOfBuffer);
+    _M_fill_forward(insertZoneStart, n, std::forward<Arg>(value));
+
+    return insertZoneStart;
 }
 
 template <typename T, class Allocator>
 template <typename Arg> // T& or T&&
-typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::_M_insert_fill_reverse(T* dataPtr, size_t start, 
-                                                                                     size_t n, Arg&& value)
+void Buffer<T, Allocator>::_M_fill_forward(typename Buffer<T, Allocator>::iterator position, size_t n, Arg&& value)
 {
-    // Insert in reverse, starting at the provided position
     for (size_t i = 0; i < n; i++)
     {
-        dataPtr[start] = value;
-        LOG("Assigned " << dataPtr[start] << " to buffer element")
-        
-        if (i < n - 1)
-            start = _M_roll_over_backward(start, 1);
-    }
+        // Guard against assigning to invalid position
+        if (position == end())
+            return;
 
-    // Return an iterator for the first sequential element to be inserted
-    return iterator(*this, start);
+        *position = value;
+        LOG("Assigned " << *position << " to buffer element")
+        position++;
+    }
+}
+
+template <typename T, class Allocator>
+template <typename Arg> // T& or T&&
+void Buffer<T, Allocator>::_M_fill_reverse(typename Buffer<T, Allocator>::iterator position, size_t n, Arg&& value)
+{
+    for (size_t i = 0; i < n; i++)
+    {
+        *position = value;
+        LOG("Assigned " << *position << " to buffer element")
+        position--;
+    }
+}
+
+// TODO remove
+template <typename T, class Allocator>
+void PrintBuf(Buffer<T, Allocator>& buf)
+{
+    for (auto e : buf)
+    {
+        LOG(e)
+    }
 }
 
 }

@@ -54,7 +54,13 @@
         "ctime": "cpp",
         "ratio": "cpp",
         "shared_mutex": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "forward_list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "iomanip": "cpp"
     },
     "editor.formatOnSave": true,
     "C_Cpp.formatting": "clangFormat",

@@ -31,5 +31,13 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "Run Unit Tests",
+            "type": "shell",
+            "command": "ctest",
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
+        }
     ]
 }

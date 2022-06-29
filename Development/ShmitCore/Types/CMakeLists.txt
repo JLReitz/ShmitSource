@@ -1,8 +1,9 @@
-# Target source files located within this subdirectory (and below)
-target_sources (ShmitCore
+# Include directories below this one
+include(Types/Containers/CMakeLists.txt)
+include(Types/Memory/CMakeLists.txt)
+
+# Target source files located within this subdirectory
+target_sources(ShmitCore
     PRIVATE
-        Types/src/TypeHelp.cpp
-        Types/src/Context/Context.cpp
-        Types/src/Context/Semaphore.cpp
-        Types/src/Memory/MemoryPool.cpp
+    Types/src/TypeHelp.cpp
 )

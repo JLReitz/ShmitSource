@@ -6,14 +6,26 @@ using namespace std;
 
 int main()
 {
+    cout << endl << endl;
+
     shmit::Buffer<int> buf(10);
 
     int x = 1;
-    for (size_t i = 0; i < 13; i++)
+    for (size_t i = 0; i < 7; i++)
     {
         buf.push_back(i);
         buf.PrintDiagnostic();
         cout << endl;
+    }
+
+    shmit::Buffer<int>::iterator it(buf, buf._M_unwrap_index(4));
+    //shmit::Buffer<int>::iterator it = buf.begin();
+
+    buf.insert(it, 9, 69);
+
+    for (int val : buf)
+    {
+        cout << val << endl;
     }
 
     // cout << "Front of buffer is " << buf.front() << endl;
