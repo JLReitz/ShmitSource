@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(ShmitSource)
 
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # TODO see if these are acceptable
 set(CMAKE_C_EXTENSIONS OFF)
@@ -16,7 +16,7 @@ add_compile_options(
   # -Wall
   # -Wextra
   # -Wconversion
-  -Wsign-conversion
+  # -Wsign-conversion
   -Og
 )
 
@@ -36,3 +36,6 @@ enable_testing()
 
 # Build ShmitCore
 add_subdirectory(Development/ShmitCore)
+
+# Build Tests
+add_subdirectory(Test/ShmitCore)
