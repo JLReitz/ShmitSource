@@ -1,10 +1,13 @@
 # Target unit tests
 add_executable(BufferTest
-    Types/Containers/UnitTest/Buffer.cpp
+    Types/Containers/Buffer_Experimental.cpp
 )
 
 # Add ShmitCore include path to targets
-target_include_directories(BufferTest PUBLIC ${SHMITCORE_INCLUDE_PATH})
+target_include_directories(BufferTest PUBLIC
+    ${SHMITCORE_INCLUDES}
+    ${SHMITCORE_TEST_INCLUDES}
+)
 
 # Link gtest_main to targets
 target_link_libraries(BufferTest

@@ -60,7 +60,12 @@
         "forward_list": "cpp",
         "map": "cpp",
         "set": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "any": "cpp",
+        "unordered_set": "cpp",
+        "thread": "cpp",
+        "variant": "cpp",
+        "mutex": "cpp"
     },
     "editor.formatOnSave": true,
     "C_Cpp.formatting": "clangFormat",

@@ -3,11 +3,11 @@
 #include <ShmitCore/StdIncludes.hpp>
 #include <ShmitCore/Types/StdTypes.hpp>
 
-#include <atomic>
 #include <initializer_list>
 #include <iterator>
 #include <memory>
 
+// TODO remove
 #include <iostream>
 
 namespace shmit
@@ -121,7 +121,7 @@ public:
      * @param index 
      * @return size_t 
      */
-    size_t _M_unwrap_index(size_t index)
+    size_t _M_unwrap_index(size_t index) const noexcept
     {
         if (index == mBufferSize)
             return index;
@@ -143,6 +143,8 @@ class BufferIterator
     size_t mCurrentIndex;
 
 public:
+
+    using iterator_category = std::random_access_iterator_tag;
 
     BufferIterator(impl::BufferBase& base) noexcept
         : mBufferRef(base), mCurrentIndex(base._M_unwrap_index(0))
@@ -291,18 +293,20 @@ public:
 template <typename T>
 class ConstBufferIterator
 {
-    impl::BufferBase& mBufferRef;
+    const impl::BufferBase& mBufferRef;
     size_t mCurrentIndex;
 
 public:
 
-    ConstBufferIterator(impl::BufferBase& base) noexcept
+    using iterator_category = std::random_access_iterator_tag;
+    
+    ConstBufferIterator(const impl::BufferBase& base) noexcept
         : mBufferRef(base), mCurrentIndex(base._M_unwrap_index(0))
     { 
         std::cout << "Creating const buffer iterator at index 0 (absolute = " << mCurrentIndex << ")" << std::endl;
     }
 
-    ConstBufferIterator(impl::BufferBase& base, size_t index) noexcept
+    ConstBufferIterator(const impl::BufferBase& base, size_t index) noexcept
         : mBufferRef(base), mCurrentIndex((index == base.max_size()) ? index : index % base.max_size())
     { 
         std::cout << "Creating const buffer iterator at absolute index " << index << std::endl;
