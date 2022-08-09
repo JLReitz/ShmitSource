@@ -19,12 +19,12 @@ class BufferBase
 {
 public:
 
-    typedef size_t  size_type;
-    typedef size_t  difference_type;
+    using size_type = size_t;
+    using difference_type = size_t;
 
 protected:
 
-    size_t mBufferSize;
+    size_t mBufferMaxSize;
     shmit::MemoryAddress mStartAddress;
 
     size_t mFrontOfBuffer; // First poppable index
@@ -34,23 +34,23 @@ protected:
 
     size_t _M_roll_over_forward(size_t index, size_t steps) const
     {
-        return ((index + steps) % mBufferSize);
+        return ((index + steps) % mBufferMaxSize);
     }
 
     size_t _M_roll_over_backward(size_t index, size_t steps) const
     {
-        return ((index < steps) ? mBufferSize - (steps - index) : index - steps);
+        return ((index < steps) ? mBufferMaxSize - (steps - index) : index - steps);
     }
 
 public:
 
     BufferBase() noexcept
-        : mStartAddress(nullptr), mBufferSize(0), mFrontOfBuffer(0), mBackOfBuffer(0), mIsFullFlag(false)
+        : mStartAddress(nullptr), mBufferMaxSize(0), mFrontOfBuffer(0), mBackOfBuffer(0), mIsFullFlag(false)
     { }
 
     size_t max_size() const noexcept
     {
-        return mBufferSize;
+        return mBufferMaxSize;
     }
 
     shmit::MemoryAddress _M_start_addr() const noexcept
@@ -71,12 +71,12 @@ public:
         // Otherwise increment normally while accounting for wrap-around.
         size_t newIndex = _M_roll_over_forward(index, steps);
         //std::cout << " (rolled over = " << newIndex << ")";
-        if ((index == mBufferSize) ||
+        if ((index == mBufferMaxSize) ||
             (index == mBackOfBuffer) ||
             (!mIsFullFlag && (newIndex == mBackOfBuffer)) ||
             ((_M_wrap_index(mBackOfBuffer) - _M_wrap_index(index)) < steps))
         {
-            newIndex = mBufferSize;
+            newIndex = mBufferMaxSize;
         }
 
         return newIndex;
@@ -86,7 +86,7 @@ public:
     {
         // If index points at the end of buffer, treat it as the back of buffer
         // Otherwise, decrement normally while accounting for wrap-around
-        if ((index == mBufferSize) && (steps > 0))
+        if ((index == mBufferMaxSize) && (steps > 0))
         {
             // If the buffer is full, the last element is stored at the back of buffer
             // Otherwise, the last element is one index before the back
@@ -109,10 +109,10 @@ public:
     {
         // If the index points to the end of buffer, return that
         // Else return the current index position in reference to the front of the buffer.
-        if (index == mBufferSize)
-            return mBufferSize;
+        if (index == mBufferMaxSize)
+            return mBufferMaxSize;
         else
-            return (index < mFrontOfBuffer) ? mBufferSize - (mFrontOfBuffer - index) : index - mFrontOfBuffer;
+            return (index < mFrontOfBuffer) ? mBufferMaxSize - (mFrontOfBuffer - index) : index - mFrontOfBuffer;
     }
 
     /**
@@ -123,10 +123,10 @@ public:
      */
     size_t _M_unwrap_index(size_t index) const noexcept
     {
-        if (index == mBufferSize)
+        if (index == mBufferMaxSize)
             return index;
 
-        return (mFrontOfBuffer + index) % mBufferSize;
+        return (mFrontOfBuffer + index) % mBufferMaxSize;
     }
 };
 
@@ -145,6 +145,12 @@ class BufferIterator
 public:
 
     using iterator_category = std::random_access_iterator_tag;
+
+    using difference_type = size_t;
+
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
 
     BufferIterator(impl::BufferBase& base) noexcept
         : mBufferRef(base), mCurrentIndex(base._M_unwrap_index(0))
@@ -298,8 +304,14 @@ class ConstBufferIterator
 
 public:
 
-    using iterator_category = std::random_access_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;    
     
+    using difference_type = size_t;
+
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
+
     ConstBufferIterator(const impl::BufferBase& base) noexcept
         : mBufferRef(base), mCurrentIndex(base._M_unwrap_index(0))
     { 

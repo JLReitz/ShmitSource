@@ -72,16 +72,32 @@ TYPED_TEST_P(SequenceContainerTest, Default_Constructor)
     EXPECT_EQ(testModule.size(), 0);
 }
 
-TYPED_TEST_P(SequenceContainerTest, Initializer_List_Constructor)
+TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
 {
     using IlType = std::initializer_list<typename TestFixture::ElementType>;
+    using IlIterator = typename IlType::iterator;
+
+    // Test initializer list constructor
     IlType il = TypeParam::GetInitializerList();
     TypeParam testModule = il;
 
-    EXPECT_EQ(testModule.size(), il.size());
+    // Use assertions for the first set of tests, if they fail there's no point testing the next
+    ASSERT_EQ(testModule.size(), il.size());
 
     typename IlType::iterator ilCurr = il.begin();
     for (const typename TestFixture::ElementType& value : testModule)
+    {
+        ASSERT_NE(ilCurr, il.end());
+        ASSERT_EQ(value, *ilCurr++);
+    }
+
+    // Test range constructor
+    TypeParam testModule2(testModule.begin(), testModule.end());
+
+    EXPECT_EQ(testModule2.size(), il.size());
+
+    ilCurr = il.begin();
+    for (const typename TestFixture::ElementType& value : testModule2)
     {
         ASSERT_NE(ilCurr, il.end());
         EXPECT_EQ(value, *ilCurr++);
@@ -266,7 +282,7 @@ TYPED_TEST_P(SequenceContainerTest, Push_Front_R_Value)
 // Register tests to test suite
 REGISTER_TYPED_TEST_SUITE_P(SequenceContainerTest,
                             Default_Constructor,
-                            Initializer_List_Constructor,
+                            Iterator_Constructors,
                             Copy_Constructor,
                             Copy_Constructor_With_Default_Constructed_Rhs,
                             Copy_Constructor_With_Empty_Rhs,

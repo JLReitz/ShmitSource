@@ -2,6 +2,7 @@
 
 #include "BufferImpl.hpp"
 
+#include <iterator>
 #include <type_traits>
 
 #define LOG(line)   std::cout << line << std::endl;
@@ -13,31 +14,34 @@ template <typename T, class Allocator = std::allocator<T>>
 class Buffer : public impl::BufferBase
 {
     
-    typedef __gnu_cxx::__alloc_traits<Allocator>    alloc_traits;
+    using alloc_traits = __gnu_cxx::__alloc_traits<Allocator>;
 
 public:
 
-    typedef typename alloc_traits::value_type       value_type;
-    typedef typename alloc_traits::pointer	        pointer;
-    typedef typename alloc_traits::const_pointer 	const_pointer;
-    typedef typename alloc_traits::reference        reference;
-    typedef typename alloc_traits::const_reference	const_reference;
+    using value_type = typename alloc_traits::value_type;
+    using pointer = typename alloc_traits::pointer;
+    using const_pointer = typename alloc_traits::const_pointer;
+    using reference = typename alloc_traits::reference;
+    using const_reference = typename alloc_traits::const_reference;
 
-    typedef Allocator allocator_type;
+    using allocator_type = Allocator;
 
-    typedef BufferIterator<T>                       iterator;
-    typedef ConstBufferIterator<T>                  const_iterator;
-    typedef std::reverse_iterator<iterator>		    reverse_iterator;
-    typedef std::reverse_iterator<const_iterator>   const_reverse_iterator;
+    using iterator = BufferIterator<T>;
+    using const_iterator = ConstBufferIterator<T>;
+    using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    typedef typename impl::BufferBase::size_type        size_type;
-    typedef typename impl::BufferBase::difference_type  difference_type;
+    using size_type = typename impl::BufferBase::size_type;
+    using difference_type = typename impl::BufferBase::difference_type;
 
     Buffer(const Allocator& allocator = Allocator()) noexcept;
     Buffer(size_t bufferSize, const Allocator& allocator = Allocator());
     Buffer(size_t bufferSize, const T& init, const Allocator& allocator = Allocator());
 
     Buffer(std::initializer_list<T> il, const Allocator& allocator = Allocator());
+    
+    template <typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
+    Buffer(IteratorTypeArg i, IteratorTypeArg j, const Allocator& allocator = Allocator());
 
     Buffer(const Buffer& rhs);
     Buffer(Buffer&& rhs) noexcept;
@@ -83,8 +87,10 @@ public:
     iterator insert(iterator position, T&& value) noexcept;
     iterator insert(iterator position, size_t n, const T& value) noexcept;
     iterator insert(iterator position, size_t n, T&& value) noexcept;
-    iterator insert(iterator position, iterator i, iterator j) noexcept;
     iterator insert(iterator position, std::initializer_list<T> il) noexcept; // TODO define
+
+    template <typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
+    iterator insert(iterator position, IteratorTypeArg i, IteratorTypeArg j) noexcept;
     
     // TODO
     template<typename... Args>
@@ -97,8 +103,10 @@ public:
     void emplace_back(Args&&... args) noexcept;
 
     void assign(size_t count, const T& value);
-    void assign(iterator i, iterator j);
     void assign(std::initializer_list<T> il);
+
+    template <typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
+    void assign(IteratorTypeArg i, IteratorTypeArg j);
 
     void swap(Buffer& rhs) noexcept;
 
@@ -128,11 +136,16 @@ public:
 private:
 
     T* AllocateBuffer(size_t n);
-
-    void CopyAssignmentWithAllocatorPropogation(const Buffer& rhs, std::true_type t);
-    void CopyAssignmentWithAllocatorPropogation(const Buffer& rhs, std::false_type f);
-
     void DeallocateBuffer() noexcept;
+
+    void CopyAssignBufferWithAllocatorPropogation(const Buffer& rhs, std::true_type t);
+    void CopyAssignBufferWithAllocatorPropogation(const Buffer& rhs, std::false_type f);
+
+    void CopyAssignElement(size_t position, const T& value);
+
+    void MoveAssignBufferWithAllocatorPropogation(Buffer&& rhs, std::true_type t);
+    void MoveAssignBufferWithAllocatorPropogation(Buffer&& rhs, std::false_type f);
+    void MoveMemoryContents(Buffer&& rhs);
 
     template <typename Arg>
     iterator FillInsert(iterator position, size_t n, Arg&& value) noexcept;
@@ -143,15 +156,20 @@ private:
     template <typename Arg>
     iterator FillInsertBack(size_t n, Arg&& value) noexcept;
 
+    template <typename IteratorTypeArg>
+    iterator RangeInsert(iterator position, IteratorTypeArg i, IteratorTypeArg j) noexcept;
+
+    template <typename IteratorTypeArg>
+    iterator RangeInsertFront(IteratorTypeArg i, IteratorTypeArg j) noexcept;
+
+    template <typename IteratorTypeArg>
+    iterator RangeInsertBack(IteratorTypeArg i, IteratorTypeArg j) noexcept;
+
     template <typename Arg>
     void FillInForward(iterator position, size_t n, Arg&& value) noexcept;
 
     template <typename Arg>
     iterator FillInReverse(iterator position, size_t n, Arg&& value) noexcept;
-
-    void MoveAssignmentWithAllocatorPropogation(Buffer&& rhs, std::true_type t);
-    void MoveAssignmentWithAllocatorPropogation(Buffer&& rhs, std::false_type f);
-    void MoveMemoryContents(Buffer&& rhs);
 
     Allocator mAllocator;
 };
@@ -175,9 +193,9 @@ Buffer<T, Allocator>::Buffer(size_t bufferSize, const Allocator& allocator)
         // Allocate storage for the container
         // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
         mStartAddress = AllocateBuffer(bufferSize);
-        mBufferSize = bufferSize;
+        mBufferMaxSize = bufferSize;
 
-        LOG("Buffer of size " << mBufferSize << " created at " << std::hex << (uint64_t)mStartAddress << std::dec)
+        LOG("Buffer of size " << mBufferMaxSize << " created at " << std::hex << (uint64_t)mStartAddress << std::dec)
     }
 }
 
@@ -192,13 +210,13 @@ Buffer<T, Allocator>::Buffer(size_t bufferSize, const T& init, const Allocator& 
         // Set back of buffer to the end of the available space and raise full flag
         // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
         mStartAddress = AllocateBuffer(bufferSize);
-        mBufferSize = bufferSize;
+        mBufferMaxSize = bufferSize;
         mBackOfBuffer = bufferSize - 1;
         mIsFullFlag = true;
 
         // Construct elements in the buffer
         // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
-        for (int i = 0; i < mBufferSize; i++)
+        for (int i = 0; i < mBufferMaxSize; i++)
             alloc_traits::construct(mAllocator, (T*)mStartAddress + i, init);
     }
 }
@@ -212,8 +230,9 @@ Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, const Allocator& alloc
     if (listSize > 0)
     {
         // Allocate buffer with enough spage to store the list
+        // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
         mStartAddress = AllocateBuffer(listSize);
-        mBufferSize = listSize;
+        mBufferMaxSize = listSize;
 
         // Copy list contents to buffer
         for (const T& value : il)
@@ -222,17 +241,37 @@ Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, const Allocator& alloc
 }
 
 template <typename T, class Allocator>
+template <typename IteratorTypeArg, typename>
+Buffer<T, Allocator>::Buffer(IteratorTypeArg i, IteratorTypeArg j, 
+                             const Allocator& allocator)
+    :   BufferBase(), mAllocator(allocator)
+{
+    size_t rangeSize = j - i;
+    if (rangeSize > 0)
+    {
+        // Allocate buffer with enough spage to store the range
+        // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
+        mStartAddress = AllocateBuffer(rangeSize);
+        mBufferMaxSize = rangeSize;
+
+        // Copy range contents to buffer
+        while (i != j)
+            push_back(*i++);
+    }
+}
+
+template <typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(const Buffer& rhs)
     :   BufferBase(), mAllocator(alloc_traits::select_on_container_copy_construction(rhs.mAllocator))
 {
     // Only continue if the right hand side buffer is initialized and has max size > 0
-    if ((rhs.mStartAddress != nullptr) && (rhs.mBufferSize > 0))
+    if ((rhs.mStartAddress != nullptr) && (rhs.mBufferMaxSize > 0))
     {
         // Allocate storage for the container
         // Set back of buffer to the end of the available space and raise full flag
         // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
-        mStartAddress = AllocateBuffer(rhs.mBufferSize);
-        mBufferSize = rhs.mBufferSize;
+        mStartAddress = AllocateBuffer(rhs.mBufferMaxSize);
+        mBufferMaxSize = rhs.mBufferMaxSize;
 
         // Copy elements from the right hand side to this
         const_iterator rhsCurr = rhs.cbegin();
@@ -247,7 +286,7 @@ Buffer<T, Allocator>::Buffer(Buffer&& rhs) noexcept
 {
     // Copy start address and other members from the right hand side to this
     mStartAddress = rhs.mStartAddress;
-    mBufferSize = rhs.mBufferSize;
+    mBufferMaxSize = rhs.mBufferMaxSize;
     mBackOfBuffer = rhs.mBackOfBuffer;
     mIsFullFlag = rhs.mIsFullFlag;
 
@@ -265,10 +304,72 @@ Buffer<T, Allocator>::~Buffer() noexcept
 //  Public  -----------------------------------------------------------------------------------------------------------
 
 template <typename T, class Allocator>
+void Buffer<T, Allocator>::assign(size_t count, const T& value)
+{
+    // Replace current elements with the value
+    iterator curr = begin();
+    while ((curr != end()) && count)
+    {
+        *curr++ = value;
+        count--;
+    }
+
+    // Insert-back the remainder of the count or spaces left in the buffer, whichever is smaller
+    size_t spacesLeft = mBufferMaxSize - size();
+    count = (spacesLeft >= count) ? count : spacesLeft;
+    FillInsertBack(count, value);
+}
+
+template <typename T, class Allocator>
+void Buffer<T, Allocator>::assign(std::initializer_list<T> il)
+{
+    size_t listSize = il.size();
+    size_t listReductionBias = 0;
+    if (listSize > mBufferMaxSize)
+    {
+        // If the range is larger than the size of the buffer, reduce it to fit
+        listReductionBias = listSize - mBufferMaxSize;
+    }
+
+    typename std::initializer_list<T>::const_iterator i = il.begin();
+    typename std::initializer_list<T>::const_iterator j = il.end() - listReductionBias;
+
+    // Replace current elements with those in the range
+    iterator curr = begin();
+    while ((curr != end()) && (i != j))
+        *curr++ = i++;
+
+    // Insert-back the remainder of the range
+    RangeInsertBack(i, j);
+}
+
+template <typename T, class Allocator>
+template <typename IteratorTypeArg, typename>
+void Buffer<T, Allocator>::assign(IteratorTypeArg i, IteratorTypeArg j)
+{
+    // Guard against overflow
+    size_t rangeSize = j - i;
+    if (rangeSize > mBufferMaxSize)
+    {
+        // If the range is larger than the size of the buffer, reduce it to fit
+        size_t diff = rangeSize - mBufferMaxSize;
+        j -= diff;
+    }
+
+    // Replace current elements with those in the range
+    iterator curr = begin();
+    while ((curr != end()) && (i != j))
+        *curr++ = i++;
+
+    // Insert-back the remainder of the range
+    RangeInsertBack(i, j);
+}
+
+template <typename T, class Allocator>
 T& Buffer<T, Allocator>::at(size_t index)
 {
     // Check for empty or out-of-bounds conditions
-    if (empty() || (index >= mBufferSize))
+    if (empty() || (index >= mBufferMaxSize))
     {
         // TODO Throw exception or enter hard fault trap
     }
@@ -282,7 +383,7 @@ template <typename T, class Allocator>
 const T& Buffer<T, Allocator>::at(size_t index) const
 {
     // Check for empty or out-of-bounds conditions
-    if (empty() || (index >= mBufferSize))
+    if (empty() || (index >= mBufferMaxSize))
     {
         // TODO Throw exception or enter hard fault trap
     }
@@ -304,7 +405,7 @@ template <typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::begin() noexcept
 {
     if (empty())
-        return iterator(*this, mBufferSize); // Return iterator to end instead (TODO there's probably a better way)
+        return iterator(*this, mBufferMaxSize); // Return iterator to end instead (TODO there's probably a better way)
 
     return iterator(*this);
 }
@@ -313,7 +414,7 @@ template <typename T, class Allocator>
 typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::begin() const noexcept
 {
     if (empty())
-        return const_iterator(*this, mBufferSize); // Return iterator to end instead (TODO there's probably a better way)
+        return const_iterator(*this, mBufferMaxSize); // Return iterator to end instead (TODO there's probably a better way)
 
     return const_iterator(*this);
 }
@@ -322,7 +423,7 @@ template <typename T, class Allocator>
 typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::cbegin() const noexcept
 {
     if (empty())
-        return const_iterator(*this, mBufferSize); // Return iterator to end instead
+        return const_iterator(*this, mBufferMaxSize); // Return iterator to end instead
 
     return const_iterator(*this);
 }
@@ -330,13 +431,13 @@ typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::cbegin() con
 template <typename T, class Allocator>
 typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::cend() const noexcept
 {
-    return const_iterator(*this, mBufferSize);
+    return const_iterator(*this, mBufferMaxSize);
 }
 
 template <typename T, class Allocator>
 void Buffer<T, Allocator>::clear() noexcept
 {
-    mFrontOfBuffer = mBackOfBuffer = 0;
+    mFrontOfBuffer = mBackOfBuffer;
     mIsFullFlag = false;
 }
 
@@ -344,7 +445,7 @@ template <typename T, class Allocator>
 typename Buffer<T, Allocator>::const_reverse_iterator Buffer<T, Allocator>::crbegin() const noexcept
 {
     if (empty())
-        return const_reverse_iterator(*this, mBufferSize); // Return iterator to end instead
+        return const_reverse_iterator(*this, mBufferMaxSize); // Return iterator to end instead
         
     return const_reverse_iterator(*this);
 }
@@ -352,7 +453,7 @@ typename Buffer<T, Allocator>::const_reverse_iterator Buffer<T, Allocator>::crbe
 template <typename T, class Allocator>
 typename Buffer<T, Allocator>::const_reverse_iterator Buffer<T, Allocator>::crend() const noexcept
 {
-    return const_reverse_iterator(*this, mBufferSize);
+    return const_reverse_iterator(*this, mBufferMaxSize);
 }
 
 template <typename T, class Allocator>
@@ -364,13 +465,13 @@ bool Buffer<T, Allocator>::empty() const noexcept
 template <typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::end() noexcept
 {
-    return iterator(*this, mBufferSize);
+    return iterator(*this, mBufferMaxSize);
 }
 
 template <typename T, class Allocator>
 typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::end() const noexcept
 {
-    return const_iterator(*this, mBufferSize);
+    return const_iterator(*this, mBufferMaxSize);
 }
 
 template <typename T, class Allocator>
@@ -467,10 +568,11 @@ Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position, s
 }
 
 // template <typename T, class Allocator>
+// template <typename IteratorTypeArg>
 // typename Buffer<T, Allocator>::iterator 
 //     Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position, 
-//                                  typename Buffer<T, Allocator>::iterator i, 
-//                                  typename Buffer<T, Allocator>::iterator j)
+//                                  IteratorTypeArg i, 
+//                                  IteratorTypeArg j)
 // {
     
 // }
@@ -517,11 +619,7 @@ template <typename T, class Allocator>
 void Buffer<T, Allocator>::push_back(const T& value) noexcept
 {
     LOG("Pushing back")
-
-    // Make a copy of the reference value, it could exist in the buffer already and be affected by the 
-    // moving/truncating of elements
-    T copyOfValue = value;
-    FillInsertBack(1, copyOfValue);
+    FillInsertBack(1, value);
 }
 
 template <typename T, class Allocator>
@@ -535,11 +633,7 @@ template <typename T, class Allocator>
 void Buffer<T, Allocator>::push_front(const T& value) noexcept
 {
     LOG("Pushing front")
-
-    // Make a copy of the reference value, it could exist in the buffer already and be affected by the 
-    // moving/truncating of elements
-    T copyOfValue = value;
-    FillInsertFront(1, copyOfValue);
+    FillInsertFront(1, value);
 }
 
 template <typename T, class Allocator>
@@ -553,7 +647,7 @@ template <typename T, class Allocator>
 typename Buffer<T, Allocator>::reverse_iterator Buffer<T, Allocator>::rbegin() noexcept
 {
     if (empty())
-        return reverse_iterator(*this, mBufferSize); // Return iterator to end instead
+        return reverse_iterator(*this, mBufferMaxSize); // Return iterator to end instead
         
     return reverse_iterator(*this);
 }
@@ -561,7 +655,7 @@ typename Buffer<T, Allocator>::reverse_iterator Buffer<T, Allocator>::rbegin() n
 template <typename T, class Allocator>
 typename Buffer<T, Allocator>::reverse_iterator Buffer<T, Allocator>::rend() noexcept
 {
-    return reverse_iterator(*this, mBufferSize);
+    return reverse_iterator(*this, mBufferMaxSize);
 }
 
 template <typename T, class Allocator>
@@ -583,16 +677,16 @@ void Buffer<T, Allocator>::resize(size_t n)
     // Swap old buffer start address for new
     T* old = (T*)mStartAddress;
     mStartAddress = newBuffer;
-    mBufferSize = n;
+    mBufferMaxSize = n;
 
-    alloc_traits::deallocate(mAllocator, (T*)old, mBufferSize);
+    alloc_traits::deallocate(mAllocator, (T*)old, mBufferMaxSize);
 }
 
 template <typename T, class Allocator>
 size_t Buffer<T, Allocator>::size() const noexcept
 {
     if (mIsFullFlag)
-        return mBufferSize;
+        return mBufferMaxSize;
 
     return _M_wrap_index(mBackOfBuffer) - _M_wrap_index(mFrontOfBuffer);
 }
@@ -604,21 +698,21 @@ void Buffer<T, Allocator>::swap(Buffer& rhs) noexcept
     bool tempIsFullFlag = mIsFullFlag;
     size_t tempFrontOfBuffer = mFrontOfBuffer;
     size_t tempBackOfBuffer = mBackOfBuffer;
-    size_t tempBufferSize = mBufferSize;
+    size_t tempBufferSize = mBufferMaxSize;
     T* tempStartAddress = (T*)mStartAddress;
 
     // Copy memory contents from right hand side to here
     mIsFullFlag = rhs.mIsFullFlag;
     mFrontOfBuffer = rhs.mFrontOfBuffer;
     mBackOfBuffer = rhs.mBackOfBuffer;
-    mBufferSize = rhs.mBufferSize;
+    mBufferMaxSize = rhs.mBufferMaxSize;
     mStartAddress = rhs.mStartAddress;
 
     // Copy cached memory contents to right hand side
     rhs.mIsFullFlag = tempIsFullFlag;
     rhs.mFrontOfBuffer = tempFrontOfBuffer;
     rhs.mBackOfBuffer = tempBackOfBuffer;
-    rhs.mBufferSize = tempBufferSize;
+    rhs.mBufferMaxSize = tempBufferSize;
     rhs.mStartAddress = tempStartAddress;
 
     // If Allocator requires that it be propogated on container swap, do so now
@@ -634,7 +728,7 @@ template <typename T, class Allocator>
 Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(const Buffer<T, Allocator>& rhs)
 {
     // Tag-dispatch the appropriate routine, selected at compile time
-    CopyAssignmentWithAllocatorPropogation(std::forward<const Buffer<T>>(rhs), 
+    CopyAssignBufferWithAllocatorPropogation(std::forward<const Buffer<T>>(rhs), 
                                        typename alloc_traits::propagate_on_container_copy_assignment{});
     
     return *this;
@@ -644,7 +738,7 @@ template <typename T, class Allocator>
 Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(Buffer<T, Allocator>&& rhs)
 {
     // Tag-dispatch the appropriate routine, selected at compile time
-    MoveAssignmentWithAllocatorPropogation(std::forward<Buffer<T>>(rhs),
+    MoveAssignBufferWithAllocatorPropogation(std::forward<Buffer<T>>(rhs),
                                        typename alloc_traits::propagate_on_container_move_assignment{});
 
     return *this;
@@ -681,7 +775,7 @@ T* Buffer<T, Allocator>::AllocateBuffer(size_t n)
 }
 
 template <typename T, class Allocator>
-void Buffer<T, Allocator>::CopyAssignmentWithAllocatorPropogation(const Buffer<T, Allocator>& rhs, std::true_type t)
+void Buffer<T, Allocator>::CopyAssignBufferWithAllocatorPropogation(const Buffer<T, Allocator>& rhs, std::true_type t)
 {
     // Deallocate current buffer, the lhs allocator may not be able to later
     DeallocateBuffer();
@@ -690,8 +784,8 @@ void Buffer<T, Allocator>::CopyAssignmentWithAllocatorPropogation(const Buffer<T
 
     // Allocate new buffer with new allocator
     // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
-    mStartAddress = AllocateBuffer(rhs.mBufferSize);
-    mBufferSize = rhs.mBufferSize;
+    mStartAddress = AllocateBuffer(rhs.mBufferMaxSize);
+    mBufferMaxSize = rhs.mBufferMaxSize;
 
     // Copy the buffer contents
     for (const T& rhsValue : rhs)
@@ -699,17 +793,17 @@ void Buffer<T, Allocator>::CopyAssignmentWithAllocatorPropogation(const Buffer<T
 }
 
 template <typename T, class Allocator>
-void Buffer<T, Allocator>::CopyAssignmentWithAllocatorPropogation(const Buffer<T, Allocator>& rhs, std::false_type f)
+void Buffer<T, Allocator>::CopyAssignBufferWithAllocatorPropogation(const Buffer<T, Allocator>& rhs, std::false_type f)
 {
-    if (mBufferSize != rhs.mBufferSize)
+    if (mBufferMaxSize != rhs.mBufferMaxSize)
     {    
         // Deallocate current buffer, the lhs allocator may not be able to later
         DeallocateBuffer();
 
         // Allocate new buffer with new allocator
         // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
-        mStartAddress = AllocateBuffer(rhs.mBufferSize);
-        mBufferSize = rhs.mBufferSize;
+        mStartAddress = AllocateBuffer(rhs.mBufferMaxSize);
+        mBufferMaxSize = rhs.mBufferMaxSize;
     }
     else
         clear(); // Just clear the current buffer
@@ -717,6 +811,13 @@ void Buffer<T, Allocator>::CopyAssignmentWithAllocatorPropogation(const Buffer<T
     // Copy the buffer contents
     for (const T& rhsValue : rhs)
         push_back(rhsValue);
+}
+
+template <typename T, class Allocator>
+void Buffer<T, Allocator>::CopyAssignElement(size_t position, const T& value)
+{
+    // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
+    *((T*)mStartAddress + _M_unwrap_index(position)) =  value;
 }
 
 template <typename T, class Allocator>
@@ -729,7 +830,7 @@ void Buffer<T, Allocator>::DeallocateBuffer() noexcept
         if (!empty())
         {
             size_t curr = mFrontOfBuffer;
-            while (curr != mBufferSize)
+            while (curr != mBufferMaxSize)
             {
                 alloc_traits::destroy(mAllocator, (T*)mStartAddress + curr);
                 curr = _M_move_index_forward(curr, 1);
@@ -740,7 +841,7 @@ void Buffer<T, Allocator>::DeallocateBuffer() noexcept
 
         // Deallocate buffer
         // Need to typecast 'mStartAddress' from void*
-        alloc_traits::deallocate(mAllocator, (T*)mStartAddress, mBufferSize);
+        alloc_traits::deallocate(mAllocator, (T*)mStartAddress, mBufferMaxSize);
     }
 }
 
@@ -751,7 +852,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
 {
     LOG("Inserting " << n << " element[s]")
 
-    if (n >= mBufferSize)
+    if (n >= mBufferMaxSize)
     {
         LOG("Buffer overfill detected")
 
@@ -763,7 +864,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
         LOG("Setting full flag")
 
         // Cap n at the buffer size, anything over will be redundant
-        n = mBufferSize;
+        n = mBufferMaxSize;
     }
     else
     {
@@ -840,8 +941,8 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsertBack(siz
     LOG("Inserting " << n << " element[s] back")
 
     // Guard against inserts larger than the buffer
-    if (n > mBufferSize)
-        n = mBufferSize;
+    if (n > mBufferMaxSize)
+        n = mBufferMaxSize;
 
     size_t insertSteps = (full()) ? n : n - 1;
     size_t endOfInsertIndex = _M_roll_over_forward(mBackOfBuffer, insertSteps);
@@ -885,8 +986,8 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsertFront(si
     LOG("Inserting " << n << " element[s] front")
 
     // Guard against inserts larger than the buffer
-    if (n > mBufferSize)
-        n = mBufferSize;
+    if (n > mBufferMaxSize)
+        n = mBufferMaxSize;
 
     // Establish the start and end of the insert zone
     // End should be before the front of buffer unless it is empty
@@ -965,7 +1066,7 @@ void Buffer<T, Allocator>::MoveMemoryContents(Buffer<T, Allocator>&& rhs)
 {
     // Copy start address and other members from the right hand side to this
     mStartAddress = rhs.mStartAddress;
-    mBufferSize = rhs.mBufferSize;
+    mBufferMaxSize = rhs.mBufferMaxSize;
     mBackOfBuffer = rhs.mBackOfBuffer;
     mIsFullFlag = rhs.mIsFullFlag;
 
@@ -975,7 +1076,7 @@ void Buffer<T, Allocator>::MoveMemoryContents(Buffer<T, Allocator>&& rhs)
 }
 
 template <typename T, class Allocator>
-void Buffer<T, Allocator>::MoveAssignmentWithAllocatorPropogation(Buffer<T, Allocator>&& rhs, std::true_type t)
+void Buffer<T, Allocator>::MoveAssignBufferWithAllocatorPropogation(Buffer<T, Allocator>&& rhs, std::true_type t)
 {
     // Deallocate the current buffer, move the allocator from the right hand side to here, and move memory contents
     DeallocateBuffer();
@@ -984,7 +1085,7 @@ void Buffer<T, Allocator>::MoveAssignmentWithAllocatorPropogation(Buffer<T, Allo
 }
 
 template <typename T, class Allocator>
-void Buffer<T, Allocator>::MoveAssignmentWithAllocatorPropogation(Buffer<T, Allocator>&& rhs, std::false_type f)
+void Buffer<T, Allocator>::MoveAssignBufferWithAllocatorPropogation(Buffer<T, Allocator>&& rhs, std::false_type f)
 {
     if (mAllocator == rhs.mAllocator)
     {
@@ -996,6 +1097,61 @@ void Buffer<T, Allocator>::MoveAssignmentWithAllocatorPropogation(Buffer<T, Allo
     {
         // TODO Throw exception or enter hard fault trap
     }
+}
+
+template <typename T, class Allocator>
+template <typename IteratorTypeArg>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertBack(IteratorTypeArg i, IteratorTypeArg j) noexcept
+{
+    size_t rangeSize = j - i;
+    LOG("Inserting range of size " << rangeSize << " back")
+
+    if (rangeSize >= mBufferMaxSize)
+    {
+        // Only the last N elements in the range will be preserved, where N is the buffer max size
+        // Decrease the range from the front by the difference
+        size_t diff = rangeSize - mBufferMaxSize;
+        i += diff;
+        rangeSize -= diff;
+
+        // Clear the buffer quickly, then insert the back N elements of the range at once
+        clear();
+    }
+
+    size_t insertSteps = (full()) ? rangeSize : rangeSize - 1;
+    size_t endOfInsertIndex = _M_roll_over_forward(mBackOfBuffer, insertSteps);
+    LOG("Post-insert back of buffer -> " << endOfInsertIndex)
+
+    // Check for overflow
+    if (_M_wrap_index(endOfInsertIndex) < _M_wrap_index(mBackOfBuffer))
+    {
+        // Increment front of buffer 1 past the end of insert index to accomodate new data
+        mFrontOfBuffer = _M_roll_over_forward(endOfInsertIndex, 1);
+        mIsFullFlag = false; // Clear full flag since data has been truncated and is not filled back in yet
+        LOG("Overflow detected")
+        LOG("Moving front of buffer -> " << mFrontOfBuffer)
+    }
+
+    // Since IteratorTypeArg is only guaranteed to be at least a LegacyInputIterator, we cannot iterate in
+    // reverse over the range. We must instead increment through, one at a time, from i to j exclusively.
+    LOG("Starting insert")
+    size_t startOfInsertIndex = (full()) ? _M_roll_over_forward(mBackOfBuffer, 1) : mBackOfBuffer;
+    size_t currentInsertIndex = startOfInsertIndex;
+    while (i < j)
+        CopyAssignElement(currentInsertIndex, *i++);
+
+    // Now update back of buffer
+    size_t newBackOfBuffer = _M_roll_over_forward(endOfInsertIndex, 1);
+    if (newBackOfBuffer == mFrontOfBuffer)
+    {
+        mBackOfBuffer = endOfInsertIndex;
+        mIsFullFlag = true;
+        LOG("Setting full flag")
+    }
+    else
+        mBackOfBuffer = newBackOfBuffer;
+
+    return iterator(*this, startOfInsertIndex);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

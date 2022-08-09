@@ -24,6 +24,11 @@ public:
         :   shmit::Buffer<int>(il)
     {}
 
+    template <class IteratorTypeArg>
+    IntSpecializationTestModule(IteratorTypeArg i, IteratorTypeArg j)
+        :   shmit::Buffer<int>(i, j)
+    {}
+
     static int GetInitializationValue()
     {
         return 1;
