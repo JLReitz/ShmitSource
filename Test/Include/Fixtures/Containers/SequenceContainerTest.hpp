@@ -9,47 +9,48 @@
     #define MAX_TEST_CONTAINER_SIZE 5
 #endif
 
-template<class ContainerTestModule>
-class SequenceContainerTest : public ::testing::Test
+template<class SequenceContainerTestModule>
+class SequenceContainerTest : public SequenceContainerTestModule, public ::testing::Test
 {
 protected:
-    using ElementType    = typename ContainerTestModule::value_type;
+    using ContainerType  = typename SequenceContainerTestModule::ContainerType;
+    using ElementType    = typename ContainerType::value_type;
     using TruthCheckType = std::deque<ElementType>;
 
-    void PushBackSequentially(ContainerTestModule& module, size_t numPushes, bool isRValue = false)
+    void PushBackSequentially(ContainerType& container, size_t numPushes, bool isRValue = false)
     {
         for (size_t i = 0; i < numPushes; i++)
         {
-            ElementType pushBackValue = module.GetPushValue();
+            ElementType pushBackValue = SequenceContainerTestModule::GetPushValue();
 
             if (isRValue)
             {
                 mTruthCheck.push_back(std::move(pushBackValue));
-                module.push_back(std::move(pushBackValue));
+                container.push_back(std::move(pushBackValue));
             }
             else
             {
                 mTruthCheck.push_back(pushBackValue);
-                module.push_back(pushBackValue);
+                container.push_back(pushBackValue);
             }
         }
     }
 
-    void PushFrontSequentially(ContainerTestModule& module, size_t numPushes, bool isRValue = false)
+    void PushFrontSequentially(ContainerType& container, size_t numPushes, bool isRValue = false)
     {
         for (size_t i = 0; i < numPushes; i++)
         {
-            ElementType pushFrontValue = ContainerTestModule::GetPushValue();
+            ElementType pushFrontValue = SequenceContainerTestModule::GetPushValue();
 
             if (isRValue)
             {
                 mTruthCheck.push_front(std::move(pushFrontValue));
-                module.push_front(std::move(pushFrontValue));
+                container.push_front(std::move(pushFrontValue));
             }
             else
             {
                 mTruthCheck.push_front(pushFrontValue);
-                module.push_front(pushFrontValue);
+                container.push_front(pushFrontValue);
             }
         }
     }
@@ -64,7 +65,7 @@ TYPED_TEST_SUITE_P(SequenceContainerTest);
 
 TYPED_TEST_P(SequenceContainerTest, Default_Constructor)
 {
-    TypeParam testModule;
+    typename TestFixture::ContainerType testModule;
 
     EXPECT_TRUE(testModule.empty());
     EXPECT_EQ(testModule.size(), 0);
@@ -76,8 +77,8 @@ TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
     using IlIterator = typename IlType::iterator;
 
     // Test initializer list constructor
-    IlType    il         = TypeParam::GetInitializerList();
-    TypeParam testModule = il;
+    IlType                              il         = TestFixture::GetInitializerList();
+    typename TestFixture::ContainerType testModule = il;
 
     // Use assertions for the first set of tests, if they fail there's no point testing the next
     ASSERT_EQ(testModule.size(), il.size());
@@ -90,7 +91,7 @@ TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
     }
 
     // Test range constructor
-    TypeParam testModule2(testModule.begin(), testModule.end());
+    typename TestFixture::ContainerType testModule2(testModule.begin(), testModule.end());
 
     EXPECT_EQ(testModule2.size(), il.size());
 
@@ -104,24 +105,24 @@ TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor)
 {
-    TypeParam rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
-    TypeParam testModule(rhs);
+    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType testModule(rhs);
 
     EXPECT_TRUE(testModule == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Default_Constructed_Rhs)
 {
-    TypeParam rhs;
-    TypeParam testModule(rhs);
+    typename TestFixture::ContainerType rhs;
+    typename TestFixture::ContainerType testModule(rhs);
 
     EXPECT_TRUE(testModule == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Empty_Rhs)
 {
-    TypeParam rhs(MAX_TEST_CONTAINER_SIZE);
-    TypeParam testModule(rhs);
+    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testModule(std::move(rhs));
 
     EXPECT_TRUE(testModule == rhs);
 }
@@ -129,7 +130,8 @@ TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Empty_Rhs)
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor)
 {
     // TODO initializer list constructor
-    TypeParam testModule(TypeParam(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue()));
+    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TestFixture::GetInitializationValue());
+    typename TestFixture::ContainerType testModule(std::move(rhs));
 
     EXPECT_EQ(testModule.size(), MAX_TEST_CONTAINER_SIZE);
 }
@@ -137,8 +139,8 @@ TYPED_TEST_P(SequenceContainerTest, Move_Constructor)
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Default_Constructed_Rhs)
 {
     // TODO initializer list constructor
-    TypeParam rhs;
-    TypeParam testModule(std::move(rhs));
+    typename TestFixture::ContainerType rhs;
+    typename TestFixture::ContainerType testModule(std::move(rhs));
 
     EXPECT_TRUE(testModule.empty());
     EXPECT_EQ(testModule.size(), 0);
@@ -147,7 +149,8 @@ TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Default_Constructed_Rh
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Empty_Rhs)
 {
     // TODO initializer list constructor
-    TypeParam testModule(TypeParam(MAX_TEST_CONTAINER_SIZE));
+    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testModule(std::move(rhs));
 
     EXPECT_TRUE(testModule.empty());
     EXPECT_EQ(testModule.size(), 0);
@@ -155,8 +158,8 @@ TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Empty_Rhs)
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment)
 {
-    TypeParam rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
-    TypeParam testModule;
+    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType testModule;
 
     testModule = rhs;
 
@@ -165,8 +168,8 @@ TYPED_TEST_P(SequenceContainerTest, Copy_Assignment)
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Default_Constructed_Rhs)
 {
-    TypeParam rhs;
-    TypeParam testModule;
+    typename TestFixture::ContainerType rhs;
+    typename TestFixture::ContainerType testModule;
 
     testModule = rhs;
 
@@ -175,8 +178,8 @@ TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Default_Constructed_Rhs
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Empty_Rhs)
 {
-    TypeParam rhs(MAX_TEST_CONTAINER_SIZE);
-    TypeParam testModule;
+    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testModule;
 
     testModule = rhs;
 
@@ -185,18 +188,18 @@ TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Empty_Rhs)
 
 TYPED_TEST_P(SequenceContainerTest, Move_Assignment)
 {
-    TypeParam testModule;
+    typename TestFixture::ContainerType testModule;
 
-    testModule = TypeParam(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    testModule = typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE, TestFixture::GetInitializationValue());
 
     EXPECT_EQ(testModule.size(), MAX_TEST_CONTAINER_SIZE);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Default_Constructed_Rhs)
 {
-    TypeParam testModule;
+    typename TestFixture::ContainerType testModule;
 
-    testModule = TypeParam();
+    testModule = typename TestFixture::ContainerType();
 
     EXPECT_TRUE(testModule.empty());
     EXPECT_EQ(testModule.size(), 0);
@@ -204,9 +207,9 @@ TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Default_Constructed_Rhs
 
 TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Empty_Rhs)
 {
-    TypeParam testModule;
+    typename TestFixture::ContainerType testModule;
 
-    testModule = TypeParam(MAX_TEST_CONTAINER_SIZE);
+    testModule = typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE);
 
     EXPECT_TRUE(testModule.empty());
     EXPECT_EQ(testModule.size(), 0);
@@ -216,7 +219,7 @@ TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Empty_Rhs)
 
 TYPED_TEST_P(SequenceContainerTest, If_Empty_Iterator_Can_Not_Increment_Forward)
 {
-    TypeParam testModule;
+    typename TestFixture::ContainerType testModule;
 
     size_t count = 0;
     for (typename TestFixture::ElementType& value : testModule)
@@ -225,11 +228,11 @@ TYPED_TEST_P(SequenceContainerTest, If_Empty_Iterator_Can_Not_Increment_Forward)
     ASSERT_EQ(count, 0);
 }
 
-//  Functional tests    ================================================================================================
+//  Functional tests ===================================================================================================
 
 TYPED_TEST_P(SequenceContainerTest, Push_Back_L_Value)
 {
-    TypeParam testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
 
     this->PushBackSequentially(testModule, MAX_TEST_CONTAINER_SIZE);
 
@@ -241,7 +244,7 @@ TYPED_TEST_P(SequenceContainerTest, Push_Back_L_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Push_Back_R_Value)
 {
-    TypeParam testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
 
     this->PushBackSequentially(testModule, MAX_TEST_CONTAINER_SIZE, true);
 
@@ -253,7 +256,7 @@ TYPED_TEST_P(SequenceContainerTest, Push_Back_R_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_L_Value)
 {
-    TypeParam testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
 
     this->PushFrontSequentially(testModule, MAX_TEST_CONTAINER_SIZE);
 
@@ -265,7 +268,7 @@ TYPED_TEST_P(SequenceContainerTest, Push_Front_L_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_R_Value)
 {
-    TypeParam testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
 
     this->PushFrontSequentially(testModule, MAX_TEST_CONTAINER_SIZE, true);
 

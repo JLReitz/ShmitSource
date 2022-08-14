@@ -18,18 +18,16 @@ namespace impl
 class BufferBase
 {
 public:
-
-    using size_type = size_t;
+    using size_type       = size_t;
     using difference_type = size_t;
 
 protected:
-
-    size_t mBufferMaxSize;
+    size_t               mBufferMaxSize;
     shmit::MemoryAddress mStartAddress;
 
     size_t mFrontOfBuffer; // First poppable index
-    size_t mBackOfBuffer; // Last poppable index
-    
+    size_t mBackOfBuffer;  // Last poppable index
+
     bool mIsFullFlag; // Flag to signal full condition
 
     size_t _M_roll_over_forward(size_t index, size_t steps) const
@@ -43,10 +41,10 @@ protected:
     }
 
 public:
-
     BufferBase() noexcept
         : mStartAddress(nullptr), mBufferMaxSize(0), mFrontOfBuffer(0), mBackOfBuffer(0), mIsFullFlag(false)
-    { }
+    {
+    }
 
     size_t max_size() const noexcept
     {
@@ -70,10 +68,8 @@ public:
         // If the new index would point past the back of the buffer, increment to end of buffer.
         // Otherwise increment normally while accounting for wrap-around.
         size_t newIndex = _M_roll_over_forward(index, steps);
-        //std::cout << " (rolled over = " << newIndex << ")";
-        if ((index == mBufferMaxSize) ||
-            (index == mBackOfBuffer) ||
-            (!mIsFullFlag && (newIndex == mBackOfBuffer)) ||
+        // std::cout << " (rolled over = " << newIndex << ")";
+        if ((index == mBufferMaxSize) || (index == mBackOfBuffer) || (!mIsFullFlag && (newIndex == mBackOfBuffer)) ||
             ((_M_wrap_index(mBackOfBuffer) - _M_wrap_index(index)) < steps))
         {
             newIndex = mBufferMaxSize;
@@ -101,9 +97,9 @@ public:
 
     /**
      * @brief Converts an absolute index to its posiion within the buffer
-     * 
-     * @param index 
-     * @return size_t 
+     *
+     * @param index
+     * @return size_t
      */
     size_t _M_wrap_index(size_t index) const noexcept
     {
@@ -117,9 +113,9 @@ public:
 
     /**
      * @brief Converts a position within the buffer to its absolute index within the data
-     * 
-     * @param index 
-     * @return size_t 
+     *
+     * @param index
+     * @return size_t
      */
     size_t _M_unwrap_index(size_t index) const noexcept
     {
@@ -133,28 +129,26 @@ public:
 } // End namespace impl
 
 // Forward declaration of ConstBufferIterator
-template <typename T>
+template<typename T>
 class ConstBufferIterator;
 
-template <typename T>
+template<typename T>
 class BufferIterator
 {
     impl::BufferBase& mBufferRef;
-    size_t mCurrentIndex;
+    size_t            mCurrentIndex;
 
 public:
-
     using iterator_category = std::random_access_iterator_tag;
 
     using difference_type = size_t;
 
     using value_type = T;
-    using pointer = T*;
-    using reference = T&;
+    using pointer    = T*;
+    using reference  = T&;
 
-    BufferIterator(impl::BufferBase& base) noexcept
-        : mBufferRef(base), mCurrentIndex(base._M_unwrap_index(0))
-    { 
+    BufferIterator(impl::BufferBase& base) noexcept : mBufferRef(base), mCurrentIndex(base._M_unwrap_index(0))
+    {
         std::cout << "Creating buffer iterator at index 0 (absolute = " << mCurrentIndex << ")" << std::endl;
     }
 
@@ -164,8 +158,7 @@ public:
         std::cout << "Creating buffer iterator at absolute index " << index << std::endl;
     }
 
-    BufferIterator(const BufferIterator& rhs)
-        : mBufferRef(rhs.mBufferRef), mCurrentIndex(rhs.mCurrentIndex)
+    BufferIterator(const BufferIterator& rhs) : mBufferRef(rhs.mBufferRef), mCurrentIndex(rhs.mCurrentIndex)
     {
     }
 
@@ -193,7 +186,7 @@ public:
     {
         std::cout << "Incrementing iterator index by 1 from " << mCurrentIndex;
         BufferIterator tmp = *this;
-        mCurrentIndex = mBufferRef._M_move_index_forward(mCurrentIndex, 1);
+        mCurrentIndex      = mBufferRef._M_move_index_forward(mCurrentIndex, 1);
         std::cout << " to " << mCurrentIndex << std::endl;
         return tmp;
     }
@@ -210,7 +203,7 @@ public:
     {
         std::cout << "Decrementing iterator index by 1 from " << mCurrentIndex;
         BufferIterator tmp = *this;
-        mCurrentIndex = mBufferRef._M_move_index_backward(mCurrentIndex, 1);
+        mCurrentIndex      = mBufferRef._M_move_index_backward(mCurrentIndex, 1);
         std::cout << " to " << mCurrentIndex << std::endl;
         return tmp;
     }
@@ -233,7 +226,7 @@ public:
 
     BufferIterator& operator=(const BufferIterator& rhs)
     {
-        mBufferRef = rhs.mBufferRef;
+        mBufferRef    = rhs.mBufferRef;
         mCurrentIndex = rhs.mCurrentIndex;
         return *this;
     }
@@ -262,7 +255,7 @@ public:
     {
         // Check base addresses first, then index numbers
         bool baseAddressesMatch = (mBufferRef._M_start_addr() == rhs.mBufferRef._M_start_addr());
-        bool indexesMatch = 
+        bool indexesMatch =
             (mBufferRef._M_wrap_index(mCurrentIndex) == rhs.mBufferRef._M_wrap_index(rhs.mCurrentIndex));
         return (!baseAddressesMatch || !indexesMatch);
     }
@@ -276,63 +269,61 @@ public:
 
     friend ConstBufferIterator<T>;
 
-    template <typename AnyTypename>
-    friend BufferIterator<AnyTypename> operator+(const BufferIterator<AnyTypename>& lhs, 
-                                                 impl::BufferBase::difference_type rhs) noexcept;
+    template<typename AnyTypename>
+    friend BufferIterator<AnyTypename> operator+(const BufferIterator<AnyTypename>& lhs,
+                                                 impl::BufferBase::difference_type  rhs) noexcept;
 
-    template <typename AnyTypename>
-    friend BufferIterator<AnyTypename> operator+(const impl::BufferBase::difference_type lhs, 
-                                                 const BufferIterator<AnyTypename>& rhs) noexcept;
+    template<typename AnyTypename>
+    friend BufferIterator<AnyTypename> operator+(const impl::BufferBase::difference_type lhs,
+                                                 const BufferIterator<AnyTypename>&      rhs) noexcept;
 
-    template <typename AnyTypename>
-    friend impl::BufferBase::difference_type operator-(const BufferIterator<AnyTypename>& lhs, 
+    template<typename AnyTypename>
+    friend impl::BufferBase::difference_type operator-(const BufferIterator<AnyTypename>& lhs,
                                                        const BufferIterator<AnyTypename>& rhs) noexcept;
 
-    template <typename AnyTypename>
-    friend BufferIterator<AnyTypename> operator-(const BufferIterator<AnyTypename>& lhs, 
+    template<typename AnyTypename>
+    friend BufferIterator<AnyTypename> operator-(const BufferIterator<AnyTypename>&      lhs,
                                                  const impl::BufferBase::difference_type rhs) noexcept;
 
-    template <typename AnyTypename>
+    template<typename AnyTypename>
     friend bool operator==(const BufferIterator<AnyTypename>& lhs, const BufferIterator<AnyTypename>& rhs) noexcept;
 };
 
-template <typename T>
+template<typename T>
 class ConstBufferIterator
 {
     const impl::BufferBase& mBufferRef;
-    size_t mCurrentIndex;
+    size_t                  mCurrentIndex;
 
 public:
+    using iterator_category = std::random_access_iterator_tag;
 
-    using iterator_category = std::random_access_iterator_tag;    
-    
     using difference_type = size_t;
 
     using value_type = T;
-    using pointer = T*;
-    using reference = T&;
+    using pointer    = T*;
+    using reference  = T&;
 
     ConstBufferIterator(const impl::BufferBase& base) noexcept
         : mBufferRef(base), mCurrentIndex(base._M_unwrap_index(0))
-    { 
+    {
         std::cout << "Creating const buffer iterator at index 0 (absolute = " << mCurrentIndex << ")" << std::endl;
     }
 
     ConstBufferIterator(const impl::BufferBase& base, size_t index) noexcept
         : mBufferRef(base), mCurrentIndex((index == base.max_size()) ? index : index % base.max_size())
-    { 
+    {
         std::cout << "Creating const buffer iterator at absolute index " << index << std::endl;
     }
 
-    ConstBufferIterator(const ConstBufferIterator& rhs)
-        : mBufferRef(rhs.mBufferRef), mCurrentIndex(rhs.mCurrentIndex)
+    ConstBufferIterator(const ConstBufferIterator& rhs) : mBufferRef(rhs.mBufferRef), mCurrentIndex(rhs.mCurrentIndex)
     {
     }
 
-    ConstBufferIterator(const BufferIterator<T>& rhs)
-        : mBufferRef(rhs.mBufferRef), mCurrentIndex(rhs.mCurrentIndex)
+    ConstBufferIterator(const BufferIterator<T>& rhs) : mBufferRef(rhs.mBufferRef), mCurrentIndex(rhs.mCurrentIndex)
     {
-        std::cout << "Copy-creating const buffer iterator at index " << mBufferRef._M_wrap_index(mCurrentIndex) << " (absolute = " << mCurrentIndex << ")" << std::endl;
+        std::cout << "Copy-creating const buffer iterator at index " << mBufferRef._M_wrap_index(mCurrentIndex)
+                  << " (absolute = " << mCurrentIndex << ")" << std::endl;
     }
 
     BufferIterator<T> undo_const() const noexcept
@@ -361,7 +352,7 @@ public:
     ConstBufferIterator operator++(int) noexcept
     {
         ConstBufferIterator tmp = *this;
-        mCurrentIndex = mBufferRef._M_move_index_forward(mCurrentIndex, 1);
+        mCurrentIndex           = mBufferRef._M_move_index_forward(mCurrentIndex, 1);
         return tmp;
     }
 
@@ -375,7 +366,7 @@ public:
     {
         std::cout << "Decrementing iterator index by 1 from " << mCurrentIndex;
         ConstBufferIterator tmp = *this;
-        mCurrentIndex = mBufferRef._M_move_index_backward(mCurrentIndex, 1);
+        mCurrentIndex           = mBufferRef._M_move_index_backward(mCurrentIndex, 1);
         std::cout << " to " << mCurrentIndex << std::endl;
         return tmp;
     }
@@ -394,7 +385,7 @@ public:
 
     ConstBufferIterator& operator=(const ConstBufferIterator& rhs)
     {
-        mBufferRef = rhs.mBufferRef;
+        mBufferRef    = rhs.mBufferRef;
         mCurrentIndex = rhs.mCurrentIndex;
         return *this;
     }
@@ -423,7 +414,7 @@ public:
     {
         // Check base addresses first, then index numbers
         bool baseAddressesMatch = (mBufferRef._M_start_addr() == rhs.mBufferRef._M_start_addr());
-        bool indexesMatch = 
+        bool indexesMatch =
             (mBufferRef._M_wrap_index(mCurrentIndex) == rhs.mBufferRef._M_wrap_index(rhs.mCurrentIndex));
         return (!baseAddressesMatch || !indexesMatch);
     }
@@ -435,31 +426,31 @@ public:
         return *tmp;
     }
 
-    template <typename AnyTypename>
-    friend ConstBufferIterator<AnyTypename> operator+(const ConstBufferIterator<AnyTypename>& lhs, 
-                                                      impl::BufferBase::difference_type rhs) noexcept;
+    template<typename AnyTypename>
+    friend ConstBufferIterator<AnyTypename> operator+(const ConstBufferIterator<AnyTypename>& lhs,
+                                                      impl::BufferBase::difference_type       rhs) noexcept;
 
-    template <typename AnyTypename>
-    friend ConstBufferIterator<AnyTypename> operator+(const impl::BufferBase::difference_type lhs, 
+    template<typename AnyTypename>
+    friend ConstBufferIterator<AnyTypename> operator+(const impl::BufferBase::difference_type lhs,
                                                       const ConstBufferIterator<AnyTypename>& rhs) noexcept;
 
-    template <typename AnyTypename>
-    friend impl::BufferBase::difference_type operator-(const ConstBufferIterator<AnyTypename>& lhs, 
-                                                      const ConstBufferIterator<AnyTypename>& rhs) noexcept;
+    template<typename AnyTypename>
+    friend impl::BufferBase::difference_type operator-(const ConstBufferIterator<AnyTypename>& lhs,
+                                                       const ConstBufferIterator<AnyTypename>& rhs) noexcept;
 
-    template <typename AnyTypename>
-    friend ConstBufferIterator<AnyTypename> operator-(const ConstBufferIterator<AnyTypename>& lhs, 
+    template<typename AnyTypename>
+    friend ConstBufferIterator<AnyTypename> operator-(const ConstBufferIterator<AnyTypename>& lhs,
                                                       const impl::BufferBase::difference_type rhs) noexcept;
 
-    template <typename AnyTypename>
-    friend bool operator==(const ConstBufferIterator<AnyTypename>& lhs, 
+    template<typename AnyTypename>
+    friend bool operator==(const ConstBufferIterator<AnyTypename>& lhs,
                            const ConstBufferIterator<AnyTypename>& rhs) noexcept;
 };
 
 //  BufferIterator friends  ///////////////////////////////////////////////////////////////////////////////////////////
 
-template <typename AnyTypename>
-BufferIterator<AnyTypename> operator+(const BufferIterator<AnyTypename>& lhs, 
+template<typename AnyTypename>
+BufferIterator<AnyTypename> operator+(const BufferIterator<AnyTypename>&         lhs,
                                       typename impl::BufferBase::difference_type rhs) noexcept
 {
     BufferIterator<AnyTypename> tmp = lhs;
@@ -467,17 +458,17 @@ BufferIterator<AnyTypename> operator+(const BufferIterator<AnyTypename>& lhs,
     return tmp;
 }
 
-template <typename AnyTypename>
-BufferIterator<AnyTypename> operator+(const typename impl::BufferBase::difference_type lhs, 
-                                      const BufferIterator<AnyTypename>& rhs) noexcept
+template<typename AnyTypename>
+BufferIterator<AnyTypename> operator+(const typename impl::BufferBase::difference_type lhs,
+                                      const BufferIterator<AnyTypename>&               rhs) noexcept
 {
     BufferIterator<AnyTypename> tmp = rhs;
     tmp += lhs;
     return tmp;
 }
 
-template <typename AnyTypename>
-BufferIterator<AnyTypename> operator-(const BufferIterator<AnyTypename>& lhs, 
+template<typename AnyTypename>
+BufferIterator<AnyTypename> operator-(const BufferIterator<AnyTypename>&               lhs,
                                       const typename impl::BufferBase::difference_type rhs) noexcept
 {
     BufferIterator<AnyTypename> tmp = lhs;
@@ -485,13 +476,13 @@ BufferIterator<AnyTypename> operator-(const BufferIterator<AnyTypename>& lhs,
     return tmp;
 }
 
-template <typename AnyTypename>
-typename impl::BufferBase::difference_type operator-(const BufferIterator<AnyTypename>& lhs, 
+template<typename AnyTypename>
+typename impl::BufferBase::difference_type operator-(const BufferIterator<AnyTypename>& lhs,
                                                      const BufferIterator<AnyTypename>& rhs) noexcept
 {
     size_t lhCurrentPosition = lhs.mBufferRef._M_wrap_index(lhs.mCurrentIndex);
     size_t rhCurrentPosition = rhs.mBufferRef._M_wrap_index(rhs.mCurrentIndex);
-    
+
     // If the right or left hand side is at the end of their buffer, they will be equivalent to that buffer's max size
     if (lhCurrentPosition == lhs.mBufferRef.max_size())
     {
@@ -505,26 +496,26 @@ typename impl::BufferBase::difference_type operator-(const BufferIterator<AnyTyp
     {
         // Duplicate of above branch for right hand side iterator position
         size_t backOfBufferIndex = rhs.mBufferRef._M_move_index_backward(rhs.mCurrentIndex, 1);
-        rhCurrentPosition = rhs.mBufferRef._M_wrap_index(backOfBufferIndex) + 1;
+        rhCurrentPosition        = rhs.mBufferRef._M_wrap_index(backOfBufferIndex) + 1;
     }
 
     return lhCurrentPosition - rhCurrentPosition;
 }
 
-template <typename AnyTypename>
+template<typename AnyTypename>
 bool operator==(const BufferIterator<AnyTypename>& rhs, const BufferIterator<AnyTypename>& lhs) noexcept
 {
     // Make sure buffer base addresses match, then compare current index
     bool baseAddressesMatch = (rhs.mBufferRef._M_start_addr() == lhs.mBufferRef._M_start_addr());
-    bool indexesMatch = 
+    bool indexesMatch =
         (rhs.mBufferRef._M_wrap_index(rhs.mCurrentIndex) == lhs.mBufferRef._M_wrap_index(lhs.mCurrentIndex));
     return (baseAddressesMatch && indexesMatch);
 }
 
 //  ConstBufferIterator friends ///////////////////////////////////////////////////////////////////////////////////////
 
-template <typename AnyTypename>
-ConstBufferIterator<AnyTypename> operator+(const ConstBufferIterator<AnyTypename>& lhs, 
+template<typename AnyTypename>
+ConstBufferIterator<AnyTypename> operator+(const ConstBufferIterator<AnyTypename>&    lhs,
                                            typename impl::BufferBase::difference_type rhs) noexcept
 {
     ConstBufferIterator<AnyTypename> tmp = lhs;
@@ -532,17 +523,17 @@ ConstBufferIterator<AnyTypename> operator+(const ConstBufferIterator<AnyTypename
     return tmp;
 }
 
-template <typename AnyTypename>
-ConstBufferIterator<AnyTypename> operator+(const typename impl::BufferBase::difference_type lhs, 
-                                           const ConstBufferIterator<AnyTypename>& rhs) noexcept
+template<typename AnyTypename>
+ConstBufferIterator<AnyTypename> operator+(const typename impl::BufferBase::difference_type lhs,
+                                           const ConstBufferIterator<AnyTypename>&          rhs) noexcept
 {
     ConstBufferIterator<AnyTypename> tmp = rhs;
     tmp += lhs;
     return tmp;
 }
 
-template <typename AnyTypename>
-ConstBufferIterator<AnyTypename> operator-(const ConstBufferIterator<AnyTypename>& lhs, 
+template<typename AnyTypename>
+ConstBufferIterator<AnyTypename> operator-(const ConstBufferIterator<AnyTypename>&          lhs,
                                            const typename impl::BufferBase::difference_type rhs) noexcept
 {
     ConstBufferIterator<AnyTypename> tmp = lhs;
@@ -550,13 +541,13 @@ ConstBufferIterator<AnyTypename> operator-(const ConstBufferIterator<AnyTypename
     return tmp;
 }
 
-template <typename AnyTypename>
-typename impl::BufferBase::difference_type operator-(const ConstBufferIterator<AnyTypename>& lhs, 
+template<typename AnyTypename>
+typename impl::BufferBase::difference_type operator-(const ConstBufferIterator<AnyTypename>& lhs,
                                                      const ConstBufferIterator<AnyTypename>& rhs) noexcept
 {
     size_t lhCurrentPosition = lhs.mBufferRef._M_wrap_index(lhs.mCurrentIndex);
     size_t rhCurrentPosition = rhs.mBufferRef._M_wrap_index(rhs.mCurrentIndex);
-    
+
     // If the right or left hand side is at the end of their buffer, they will be equivalent to that buffer's max size
     if (lhCurrentPosition == lhs.mBufferRef.max_size())
     {
@@ -570,20 +561,20 @@ typename impl::BufferBase::difference_type operator-(const ConstBufferIterator<A
     {
         // Duplicate of above branch for right hand side iterator position
         size_t backOfBufferIndex = rhs.mBufferRef._M_move_index_backward(rhs.mCurrentIndex, 1);
-        rhCurrentPosition = rhs.mBufferRef._M_wrap_index(backOfBufferIndex) + 1;
+        rhCurrentPosition        = rhs.mBufferRef._M_wrap_index(backOfBufferIndex) + 1;
     }
 
     return lhCurrentPosition - rhCurrentPosition;
 }
 
-template <typename AnyTypename>
+template<typename AnyTypename>
 bool operator==(const ConstBufferIterator<AnyTypename>& lhs, const ConstBufferIterator<AnyTypename>& rhs) noexcept
 {
     // Make sure buffer base addresses match, then compare current index
     bool baseAddressesMatch = (lhs.mBufferRef._M_start_addr() == rhs.mBufferRef._M_start_addr());
-    bool indexesMatch = 
+    bool indexesMatch =
         (lhs.mBufferRef._M_wrap_index(lhs.mCurrentIndex) == rhs.mBufferRef._M_wrap_index(rhs.mCurrentIndex));
     return (baseAddressesMatch && indexesMatch);
 }
 
-}
+} // namespace shmit
