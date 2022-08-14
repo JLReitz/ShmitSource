@@ -2,35 +2,35 @@
 
 #include <ShmitCore/Types/Containers/Buffer.hpp>
 
-int gPushValueCount = 69;
+int gIncrementingGetValue = 69; // Value increments every time GetPushValue() or GetInsertValue() is called
 
 class IntSpecializationTestModule : public shmit::Buffer<int>
 {
 public:
+    IntSpecializationTestModule() : shmit::Buffer<int>()
+    {
+    }
 
-    IntSpecializationTestModule()
-        :   shmit::Buffer<int>()
-    {}
+    IntSpecializationTestModule(size_t bufferSize) : shmit::Buffer<int>(bufferSize)
+    {
+    }
 
-    IntSpecializationTestModule(size_t bufferSize)
-        :   shmit::Buffer<int>(bufferSize)
-    {}
+    IntSpecializationTestModule(size_t bufferSize, const int& init) : shmit::Buffer<int>(bufferSize, init)
+    {
+    }
 
-    IntSpecializationTestModule(size_t bufferSize, const int& init)
-        :   shmit::Buffer<int>(bufferSize, init)
-    {}
+    IntSpecializationTestModule(std::initializer_list<int> il) : shmit::Buffer<int>(il)
+    {
+    }
 
-    IntSpecializationTestModule(std::initializer_list<int> il)
-        :   shmit::Buffer<int>(il)
-    {}
-
-    template <class IteratorTypeArg>
-    IntSpecializationTestModule(IteratorTypeArg i, IteratorTypeArg j)
-        :   shmit::Buffer<int>(i, j)
-    {}
+    template<class IteratorTypeArg>
+    IntSpecializationTestModule(IteratorTypeArg i, IteratorTypeArg j) : shmit::Buffer<int>(i, j)
+    {
+    }
 
     static int GetInitializationValue()
     {
+        // Buffers initialized with this value will contain all 1's
         return 1;
     }
 
@@ -41,7 +41,12 @@ public:
 
     static int GetPushValue()
     {
-        return gPushValueCount++;
+        return gIncrementingGetValue++;
+    }
+
+    static int GetInsertValue()
+    {
+        return gIncrementingGetValue++;
     }
 
     bool operator==(const IntSpecializationTestModule& rhs) const
@@ -50,8 +55,7 @@ public:
     }
 
 private:
-
-    static constexpr std::initializer_list<int> mIl = {1, 2, 3, 4, 5};
+    static constexpr std::initializer_list<int> mIl = {1, 2, 3, 4, 5}; // Buffer test initializer list
 };
 
 INSTANTIATE_TYPED_TEST_SUITE_P(Buffer, SequenceContainerTest, IntSpecializationTestModule);

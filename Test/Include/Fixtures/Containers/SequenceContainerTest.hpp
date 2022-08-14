@@ -6,15 +6,14 @@
 #include <gtest/gtest.h>
 
 #ifndef MAX_TEST_CONTAINER_SIZE
-#define MAX_TEST_CONTAINER_SIZE 5
+    #define MAX_TEST_CONTAINER_SIZE 5
 #endif
 
-template <class ContainerTestModule>
+template<class ContainerTestModule>
 class SequenceContainerTest : public ::testing::Test
 {
 protected:
-
-    using ElementType = typename ContainerTestModule::value_type;
+    using ElementType    = typename ContainerTestModule::value_type;
     using TruthCheckType = std::deque<ElementType>;
 
     void PushBackSequentially(ContainerTestModule& module, size_t numPushes, bool isRValue = false)
@@ -61,8 +60,7 @@ protected:
 // Declare type-parameterized test suite
 TYPED_TEST_SUITE_P(SequenceContainerTest);
 
-//  Constructor & assignment tests  ===================================================================================
-
+//  Constructor & assignment tests  ====================================================================================
 
 TYPED_TEST_P(SequenceContainerTest, Default_Constructor)
 {
@@ -74,11 +72,11 @@ TYPED_TEST_P(SequenceContainerTest, Default_Constructor)
 
 TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
 {
-    using IlType = std::initializer_list<typename TestFixture::ElementType>;
+    using IlType     = std::initializer_list<typename TestFixture::ElementType>;
     using IlIterator = typename IlType::iterator;
 
     // Test initializer list constructor
-    IlType il = TypeParam::GetInitializerList();
+    IlType    il         = TypeParam::GetInitializerList();
     TypeParam testModule = il;
 
     // Use assertions for the first set of tests, if they fail there's no point testing the next
@@ -214,7 +212,7 @@ TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Empty_Rhs)
     EXPECT_EQ(testModule.size(), 0);
 }
 
-//  Iterator tests  ===================================================================================================
+//  Iterator tests  ====================================================================================================
 
 TYPED_TEST_P(SequenceContainerTest, If_Empty_Iterator_Can_Not_Increment_Forward)
 {
@@ -227,7 +225,7 @@ TYPED_TEST_P(SequenceContainerTest, If_Empty_Iterator_Can_Not_Increment_Forward)
     ASSERT_EQ(count, 0);
 }
 
-//  Functional tests    ===============================================================================================
+//  Functional tests    ================================================================================================
 
 TYPED_TEST_P(SequenceContainerTest, Push_Back_L_Value)
 {
@@ -238,7 +236,7 @@ TYPED_TEST_P(SequenceContainerTest, Push_Back_L_Value)
     // Test container should match the truth check sequence
     EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
     for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+        EXPECT_EQ(testModule [i], this->mTruthCheck [i]);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Back_R_Value)
@@ -250,7 +248,7 @@ TYPED_TEST_P(SequenceContainerTest, Push_Back_R_Value)
     // Test container should match the truth check sequence
     EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
     for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+        EXPECT_EQ(testModule [i], this->mTruthCheck [i]);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_L_Value)
@@ -262,7 +260,7 @@ TYPED_TEST_P(SequenceContainerTest, Push_Front_L_Value)
     // Test container should match the truth check sequence
     EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
     for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+        EXPECT_EQ(testModule [i], this->mTruthCheck [i]);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_R_Value)
@@ -274,29 +272,17 @@ TYPED_TEST_P(SequenceContainerTest, Push_Front_R_Value)
     // Test container should match the truth check sequence
     EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
     for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+        EXPECT_EQ(testModule [i], this->mTruthCheck [i]);
 }
 
-//  End of tests    ===================================================================================================
+//  End of tests    ====================================================================================================
 
 // Register tests to test suite
-REGISTER_TYPED_TEST_SUITE_P(SequenceContainerTest,
-                            Default_Constructor,
-                            Iterator_Constructors,
-                            Copy_Constructor,
-                            Copy_Constructor_With_Default_Constructed_Rhs,
-                            Copy_Constructor_With_Empty_Rhs,
-                            Move_Constructor,
-                            Move_Constructor_With_Default_Constructed_Rhs,
-                            Move_Constructor_With_Empty_Rhs,
-                            Copy_Assignment,
-                            Copy_Assignment_With_Default_Constructed_Rhs,
-                            Copy_Assignment_With_Empty_Rhs,
-                            Move_Assignment,
-                            Move_Assignment_With_Default_Constructed_Rhs,
-                            Move_Assignment_With_Empty_Rhs,
-                            If_Empty_Iterator_Can_Not_Increment_Forward,
-                            Push_Back_L_Value,
-                            Push_Back_R_Value,
-                            Push_Front_L_Value,
-                            Push_Front_R_Value);
+REGISTER_TYPED_TEST_SUITE_P(SequenceContainerTest, Default_Constructor, Iterator_Constructors, Copy_Constructor,
+                            Copy_Constructor_With_Default_Constructed_Rhs, Copy_Constructor_With_Empty_Rhs,
+                            Move_Constructor, Move_Constructor_With_Default_Constructed_Rhs,
+                            Move_Constructor_With_Empty_Rhs, Copy_Assignment,
+                            Copy_Assignment_With_Default_Constructed_Rhs, Copy_Assignment_With_Empty_Rhs,
+                            Move_Assignment, Move_Assignment_With_Default_Constructed_Rhs,
+                            Move_Assignment_With_Empty_Rhs, If_Empty_Iterator_Can_Not_Increment_Forward,
+                            Push_Back_L_Value, Push_Back_R_Value, Push_Front_L_Value, Push_Front_R_Value);
