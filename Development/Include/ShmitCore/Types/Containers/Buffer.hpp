@@ -84,8 +84,7 @@ public:
     iterator insert(iterator position, const T& value) noexcept;
     iterator insert(iterator position, T&& value) noexcept;
     iterator insert(iterator position, size_t n, const T& value) noexcept;
-    iterator insert(iterator position, size_t n, T&& value) noexcept;
-    iterator insert(iterator position, std::initializer_list<T> il) noexcept; // TODO define
+    iterator insert(iterator position, std::initializer_list<T> il) noexcept;
 
     template<typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
     iterator insert(iterator position, IteratorTypeArg i, IteratorTypeArg j) noexcept;
@@ -147,26 +146,28 @@ private:
     template<typename Arg>
     iterator FillInsert(iterator position, size_t n, Arg&& value) noexcept;
 
-    template<typename Arg>
-    iterator FillInsertFront(size_t n, Arg&& value) noexcept;
-
-    template<typename Arg>
-    iterator FillInsertBack(size_t n, Arg&& value) noexcept;
-
     template<typename IteratorTypeArg>
     iterator RangeInsert(iterator position, IteratorTypeArg i, IteratorTypeArg j) noexcept;
 
-    template<typename IteratorTypeArg>
-    iterator RangeInsertFront(IteratorTypeArg i, IteratorTypeArg j) noexcept;
+    template<typename Arg>
+    iterator FillPushFront(size_t n, Arg&& value) noexcept;
+
+    template<typename Arg>
+    iterator FillPushBack(size_t n, Arg&& value) noexcept;
 
     template<typename IteratorTypeArg>
-    iterator RangeInsertBack(IteratorTypeArg i, IteratorTypeArg j) noexcept;
+    iterator RangePushFront(IteratorTypeArg i, IteratorTypeArg j) noexcept;
+
+    template<typename IteratorTypeArg>
+    iterator RangePushBack(IteratorTypeArg i, IteratorTypeArg j) noexcept;
 
     template<typename Arg>
     void FillInForward(iterator position, size_t n, Arg&& value) noexcept;
 
     template<typename Arg>
     iterator FillInReverse(iterator position, size_t n, Arg&& value) noexcept;
+
+    void PrepareForRandomInsert(iterator position, size_t n);
 
     Allocator mAllocator;
 };
@@ -312,7 +313,7 @@ void Buffer<T, Allocator>::assign(size_t count, const T& value)
     // Insert-back the remainder of the count or spaces left in the buffer, whichever is smaller
     size_t spacesLeft = mBufferMaxSize - size();
     count             = (spacesLeft >= count) ? count : spacesLeft;
-    FillInsertBack(count, value);
+    FillPushBack(count, value);
 }
 
 template<typename T, class Allocator>
@@ -335,7 +336,7 @@ void Buffer<T, Allocator>::assign(std::initializer_list<T> il)
         *curr++ = i++;
 
     // Insert-back the remainder of the range
-    RangeInsertBack(i, j);
+    RangePushBack(i, j);
 }
 
 template<typename T, class Allocator>
@@ -357,7 +358,7 @@ void Buffer<T, Allocator>::assign(IteratorTypeArg i, IteratorTypeArg j)
         *curr++ = i++;
 
     // Insert-back the remainder of the range
-    RangeInsertBack(i, j);
+    RangePushBack(i, j);
 }
 
 template<typename T, class Allocator>
@@ -433,8 +434,9 @@ typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::cend() const
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::clear() noexcept
 {
-    mFrontOfBuffer = mBackOfBuffer;
-    mIsFullFlag    = false;
+    // Iterator positions will remain constant by retaining the front of buffer
+    mBackOfBuffer = mFrontOfBuffer;
+    mIsFullFlag   = false;
 }
 
 template<typename T, class Allocator>
@@ -494,11 +496,11 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
     // If the position is the back or beginning of the buffer, perform a push
     if (position == begin())
     {
-        return FillInsertFront(1, copyOfValue);
+        return FillPushFront(1, copyOfValue);
     }
     else if (position == end())
     {
-        return FillInsertBack(1, copyOfValue);
+        return FillPushBack(1, copyOfValue);
     }
 
     // Otherwise call the random-access insert routine
@@ -512,11 +514,11 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
     // If the position is the back or beginning of the buffer, perform a push
     if (position == begin())
     {
-        return FillInsertFront(1, std::forward<T>(value));
+        return FillPushFront(1, std::forward<T>(value));
     }
     else if (position == end())
     {
-        return FillInsertBack(1, std::forward<T>(value));
+        return FillPushBack(1, std::forward<T>(value));
     }
 
     // Otherwise call the random-access insert routine
@@ -534,11 +536,11 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
     // If the position is the back or beginning of the buffer, perform a push
     if (position == begin())
     {
-        return FillInsertFront(n, copyOfValue);
+        return FillPushFront(n, copyOfValue);
     }
     else if (position == end())
     {
-        return FillInsertBack(n, copyOfValue);
+        return FillPushBack(n, copyOfValue);
     }
 
     // Otherwise call the random-access insert routine
@@ -547,31 +549,40 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
 
 template<typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
-                                                                     size_t n, T&& value) noexcept
+                                                                     std::initializer_list<T> il) noexcept
 {
     // If the position is the back or beginning of the buffer, perform a push
     if (position == begin())
     {
-        return FillInsertFront(n, std::forward<T>(value));
+        return RangePushFront(il.begin(), il.end());
     }
     else if (position == end())
     {
-        return FillInsertBack(n, std::forward<T>(value));
+        return RangePushBack(il.begin(), il.end());
     }
 
     // Otherwise call the random-access insert routine
-    return FillInsert(position, n, std::forward<T>(value));
+    return RangeInsert(position, il.begin(), il.end());
 }
 
-// template <typename T, class Allocator>
-// template <typename IteratorTypeArg>
-// typename Buffer<T, Allocator>::iterator
-//     Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
-//                                  IteratorTypeArg i,
-//                                  IteratorTypeArg j)
-// {
+template<typename T, class Allocator>
+template<typename IteratorTypeArg, typename>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
+                                                                     IteratorTypeArg i, IteratorTypeArg j) noexcept
+{
+    // If the position is the back or beginning of the buffer, perform a push
+    if (position == begin())
+    {
+        return RangePushFront(i, j);
+    }
+    else if (position == end())
+    {
+        return RangePushBack(i, j);
+    }
 
-// }
+    // Otherwise call the random-access insert routine
+    return RangeInsert(position, i, j);
+}
 
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::pop_back() noexcept
@@ -615,28 +626,28 @@ template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_back(const T& value) noexcept
 {
     LOG("Pushing back")
-    FillInsertBack(1, value);
+    FillPushBack(1, value);
 }
 
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_back(T&& value) noexcept
 {
     LOG("Pushing back")
-    FillInsertBack(1, std::forward<T>(value));
+    FillPushBack(1, std::forward<T>(value));
 }
 
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_front(const T& value) noexcept
 {
     LOG("Pushing front")
-    FillInsertFront(1, value);
+    FillPushFront(1, value);
 }
 
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_front(T&& value) noexcept
 {
     LOG("Pushing front")
-    FillInsertFront(1, std::forward<T>(value));
+    FillPushFront(1, std::forward<T>(value));
 }
 
 template<typename T, class Allocator>
@@ -665,7 +676,7 @@ void Buffer<T, Allocator>::resize(size_t n)
     iterator endIt            = end();
     while (currentIt != endIt)
     {
-        newBuffer [destinationIndex] = *currentIt;
+        newBuffer[destinationIndex] = *currentIt;
         currentIt++;
         destinationIndex = _M_roll_over_forward(destinationIndex, 1);
     }
@@ -813,6 +824,7 @@ void Buffer<T, Allocator>::CopyAssignElement(size_t position, const T& value)
 {
     // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
     *((T*)mStartAddress + _M_unwrap_index(position)) = value;
+    LOG("Assigned " << *((T*)mStartAddress + _M_unwrap_index(position)) << " to position " << position)
 }
 
 template<typename T, class Allocator>
@@ -851,7 +863,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
     {
         LOG("Buffer overfill detected")
 
-        // Fill in the entire buffer starting from the updated back and set the full flag
+        // Fill in the entire buffer starting and set the full flag
         size_t mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Back of buffer sits behind front when full
         mIsFullFlag          = true;
 
@@ -862,65 +874,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
         n = mBufferMaxSize;
     }
     else
-    {
-        // Cache the index where the last valid element is in the original data contents
-        size_t lastValidElementIndex = (mIsFullFlag) ? mBackOfBuffer : _M_roll_over_backward(mBackOfBuffer, 1);
-        LOG("Caching last valid element at " << lastValidElementIndex)
-
-        // Update the back of buffer, do not allow overflow
-        size_t newBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, n);
-        LOG("New back of buffer -> " << newBackOfBuffer)
-        // If the new back of buffer has overflowed the front its wrapped position will be less than the original's
-        if (_M_wrap_index(newBackOfBuffer) < _M_wrap_index(mBackOfBuffer))
-        {
-            LOG("New back of buffer overflows front")
-            newBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Keep back behind front
-            mIsFullFlag     = true;                                     // The resultant buffer will be full
-            LOG("New back of buffer -> " << newBackOfBuffer)
-        }
-
-        mBackOfBuffer = newBackOfBuffer;
-        LOG("Back of buffer -> " << mBackOfBuffer)
-
-        // 'position' is the first slot of the insert zone, find the last
-        iterator insertZoneEnd = position + (n - 1);
-        if (insertZoneEnd == end())
-        {
-            LOG("End of insert zone overflows front")
-
-            // If elements to be inserted will overflow the front, we must truncate
-            size_t openInsertSlots = insertZoneEnd - position;
-            size_t overFlowDiff    = n - openInsertSlots;
-            LOG("Moving front and back forward by " << overFlowDiff)
-            mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, overFlowDiff);
-            mBackOfBuffer  = _M_roll_over_backward(mFrontOfBuffer, 1);
-            LOG("Front of buffer -> " << mFrontOfBuffer)
-            LOG("Back of buffer -> " << mBackOfBuffer)
-        }
-        else
-        {
-            // Else, there is room after the insert zone for more data
-            // Copy as much preexisting data behind 'position' as is possible without truncating anything before
-            iterator dest = end() - 1;                     // New back of buffer
-            iterator source(*this, lastValidElementIndex); // Original back of buffer
-
-            // Determine if any of the slots to copy will need to be truncated
-            size_t slotsToCopy = (source - position) + 1;
-            LOG("Slots to copy: " << slotsToCopy)
-            size_t openCopySlots = dest - insertZoneEnd;
-            LOG("Open copy slots: " << openCopySlots)
-            if (openCopySlots < slotsToCopy)
-            {
-                size_t backTruncateDiff = slotsToCopy - openCopySlots;
-                source -= backTruncateDiff;
-                LOG("Back truncated by " << backTruncateDiff << " slots")
-            }
-
-            LOG("Moving old data")
-            while (dest > insertZoneEnd)
-                *dest-- = *source--;
-        }
-    }
+        PrepareForRandomInsert(position, n);
 
     // Fill in the insert zone
     LOG("Filling insert zone")
@@ -931,7 +885,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
 
 template<typename T, class Allocator>
 template<typename Arg> // T& or T&&
-typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsertBack(size_t n, Arg&& value) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushBack(size_t n, Arg&& value) noexcept
 {
     LOG("Inserting " << n << " element[s] back")
 
@@ -976,7 +930,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsertBack(siz
 
 template<typename T, class Allocator>
 template<typename Arg> // T& or T&&
-typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsertFront(size_t n, Arg&& value) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushFront(size_t n, Arg&& value) noexcept
 {
     LOG("Inserting " << n << " element[s] front")
 
@@ -1096,9 +1050,108 @@ void Buffer<T, Allocator>::MoveAssignBufferWithAllocatorPropogation(Buffer<T, Al
 }
 
 template<typename T, class Allocator>
+void Buffer<T, Allocator>::PrepareForRandomInsert(typename Buffer<T, Allocator>::iterator position, size_t n)
+{
+    // Cache the index where the last valid element is in the original data contents
+    size_t lastValidElementIndex = (mIsFullFlag) ? mBackOfBuffer : _M_roll_over_backward(mBackOfBuffer, 1);
+    LOG("Caching last valid element at " << lastValidElementIndex)
+
+    // Update the back of buffer, do not allow overflow
+    size_t newBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, n);
+    LOG("New back of buffer -> " << newBackOfBuffer)
+    // If the new back of buffer has overflowed the front its wrapped position will be less than the original's
+    if (_M_wrap_index(newBackOfBuffer) < _M_wrap_index(mBackOfBuffer))
+    {
+        LOG("New back of buffer overflows front")
+        newBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Keep back behind front
+        mIsFullFlag     = true;                                     // The resultant buffer will be full
+        LOG("New back of buffer -> " << newBackOfBuffer)
+    }
+
+    mBackOfBuffer = newBackOfBuffer;
+    LOG("Back of buffer -> " << mBackOfBuffer)
+
+    // 'position' is the first slot of the insert zone, find the last
+    iterator insertZoneEnd = position + (n - 1);
+    if (insertZoneEnd == end())
+    {
+        LOG("End of insert zone overflows front")
+
+        // If elements to be inserted will overflow the front, we must truncate
+        size_t openInsertSlots = insertZoneEnd - position;
+        size_t overFlowDiff    = n - openInsertSlots;
+        LOG("Moving front and back forward by " << overFlowDiff)
+        mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, overFlowDiff);
+        mBackOfBuffer  = _M_roll_over_backward(mFrontOfBuffer, 1);
+        LOG("Front of buffer -> " << mFrontOfBuffer)
+        LOG("Back of buffer -> " << mBackOfBuffer)
+    }
+    else
+    {
+        // Else, there is room after the insert zone for more data
+        // Copy as much preexisting data behind 'position' as is possible without truncating anything before
+        iterator dest = end() - 1;                     // New back of buffer
+        iterator source(*this, lastValidElementIndex); // Original back of buffer
+
+        // Determine if any of the slots to copy will need to be truncated
+        size_t slotsToCopy = (source - position) + 1;
+        LOG("Slots to copy: " << slotsToCopy)
+        size_t openCopySlots = dest - insertZoneEnd;
+        LOG("Open copy slots: " << openCopySlots)
+        if (openCopySlots < slotsToCopy)
+        {
+            size_t backTruncateDiff = slotsToCopy - openCopySlots;
+            source -= backTruncateDiff;
+            LOG("Back truncated by " << backTruncateDiff << " slots")
+        }
+
+        LOG("Moving old data")
+        while (dest > insertZoneEnd)
+            *dest-- = *source--;
+    }
+}
+
+template<typename T, class Allocator>
 template<typename IteratorTypeArg>
-typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertBack(IteratorTypeArg i,
-                                                                              IteratorTypeArg j) noexcept
+typename Buffer<T, Allocator>::iterator
+    Buffer<T, Allocator>::RangeInsert(typename Buffer<T, Allocator>::iterator position, IteratorTypeArg i,
+                                      IteratorTypeArg j) noexcept
+{
+    size_t rangeSize = j - i;
+    LOG("Inserting range of size " << rangeSize)
+
+    if (rangeSize >= mBufferMaxSize)
+    {
+        // Only the first N elements in the range will be inserted, where N is the buffer max size
+        // Decrease the range from the back by the difference
+        size_t diff = rangeSize - mBufferMaxSize;
+        j -= diff;
+        rangeSize -= diff;
+
+        // Fill in the entire buffer and set the full flag
+        size_t mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Back of buffer sits behind front when full
+        mIsFullFlag          = true;
+
+        LOG("Moving back of buffer -> " << mBackOfBuffer)
+        LOG("Setting full flag")
+    }
+    else
+        PrepareForRandomInsert(position, rangeSize);
+
+    // Since IteratorTypeArg is only guaranteed to be at least a `LegacyInputIterator`, we cannot iterate in
+    // reverse over the range. We must instead increment through, one at a time, from i to j exclusively.
+    LOG("Starting insert")
+    iterator curr = position;
+    while (i < j)
+        *curr++ = *i++;
+
+    return position;
+}
+
+template<typename T, class Allocator>
+template<typename IteratorTypeArg>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushBack(IteratorTypeArg i,
+                                                                            IteratorTypeArg j) noexcept
 {
     size_t rangeSize = j - i;
     LOG("Inserting range of size " << rangeSize << " back")
@@ -1110,9 +1163,6 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertBack(It
         size_t diff = rangeSize - mBufferMaxSize;
         j -= diff;
         rangeSize -= diff;
-
-        // Clear the buffer quickly, then insert the back N elements of the range at once
-        clear();
     }
 
     size_t insertSteps      = (full()) ? rangeSize : rangeSize - 1;
@@ -1129,13 +1179,13 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertBack(It
         LOG("Moving front of buffer -> " << mFrontOfBuffer)
     }
 
-    // Since IteratorTypeArg is only guaranteed to be at least a LegacyInputIterator, we cannot iterate in
+    // Since IteratorTypeArg is only guaranteed to be at least a `LegacyInputIterator`, we cannot iterate in
     // reverse over the range. We must instead increment through, one at a time, from i to j exclusively.
     LOG("Starting insert")
     size_t startOfInsertIndex = (full()) ? _M_roll_over_forward(mBackOfBuffer, 1) : mBackOfBuffer;
     size_t currentInsertIndex = startOfInsertIndex;
     while (i < j)
-        CopyAssignElement(currentInsertIndex, *i++);
+        CopyAssignElement(currentInsertIndex++, *i++);
 
     // Now update back of buffer
     size_t newBackOfBuffer = _M_roll_over_forward(endOfInsertIndex, 1);
@@ -1153,8 +1203,8 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertBack(It
 
 template<typename T, class Allocator>
 template<typename IteratorTypeArg>
-typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertFront(IteratorTypeArg i,
-                                                                               IteratorTypeArg j) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushFront(IteratorTypeArg i,
+                                                                             IteratorTypeArg j) noexcept
 {
     size_t rangeSize = j - i;
     LOG("Inserting range of size " << rangeSize << " back")
@@ -1166,9 +1216,6 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertFront(I
         size_t diff = rangeSize - mBufferMaxSize;
         j -= diff;
         rangeSize -= diff;
-
-        // Clear the buffer quickly, then insert the back N elements of the range at once
-        clear();
     }
 
     size_t endOfInsertIndex   = (empty()) ? mFrontOfBuffer : _M_roll_over_backward(mFrontOfBuffer, 1);
@@ -1185,12 +1232,12 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsertFront(I
         LOG("Moving back of buffer -> " << mBackOfBuffer)
     }
 
-    // Since IteratorTypeArg is only guaranteed to be at least a LegacyInputIterator, we cannot iterate in
+    // Since IteratorTypeArg is only guaranteed to be at least a `LegacyInputIterator`, we cannot iterate in
     // reverse over the range. We must instead increment through, one at a time, from i to j exclusively.
     LOG("Starting insert")
     size_t currentInsertIndex = startOfInsertIndex;
     while (i < j)
-        CopyAssignElement(currentInsertIndex, *i++);
+        CopyAssignElement(currentInsertIndex++, *i++);
 
     // Now update front of buffer
     mFrontOfBuffer = startOfInsertIndex;

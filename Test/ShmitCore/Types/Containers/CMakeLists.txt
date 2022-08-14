@@ -1,6 +1,6 @@
 # Target unit tests
 add_executable(BufferTest
-    Types/Containers/Buffer_Experimental.cpp
+    Types/Containers/BufferTest.cpp
 )
 
 # Add ShmitCore include path to targets

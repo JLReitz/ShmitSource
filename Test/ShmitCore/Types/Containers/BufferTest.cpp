@@ -19,11 +19,6 @@ public:
         return 1;
     }
 
-    static std::initializer_list<int> GetInitializerList()
-    {
-        return mIl;
-    }
-
     static int GetInsertValue()
     {
         return gIncrementingGetIntValue++;
@@ -32,6 +27,16 @@ public:
     static int GetPushValue()
     {
         return gIncrementingGetIntValue++;
+    }
+
+    static std::initializer_list<int> GetInitializerList()
+    {
+        return mIl;
+    }
+
+    static size_t InitializerListSize()
+    {
+        return mIl.size();
     }
 
 private:
