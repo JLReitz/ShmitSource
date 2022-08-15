@@ -21,6 +21,34 @@ protected:
     using TruthCheckType         = std::deque<ElementType>; // Known-working STL sequence container for verification
     using TruchCheckIteratorType = typename TruthCheckType::iterator;
 
+    void AssignFill(ContainerType& container, size_t n)
+    {
+        ElementType assignValue = SequenceContainerTestModule::GetAssignValue();
+
+        mTruthCheck.assign(n, assignValue);
+        container.assign(n, assignValue);
+    }
+
+    void AssignRange(ContainerType& container)
+    {
+        using IlType = std::initializer_list<ElementType>;
+
+        IlType il = SequenceContainerTestModule::GetInitializerList();
+
+        mTruthCheck.assign(il.begin(), il.end());
+        container.assign(il.begin(), il.end());
+    }
+
+    void AssignInitList(ContainerType& container)
+    {
+        using IlType = std::initializer_list<ElementType>;
+
+        IlType il = SequenceContainerTestModule::GetInitializerList();
+
+        mTruthCheck.assign(il);
+        container.assign(il);
+    }
+
     void PushBackSequentially(ContainerType& container, size_t numPushes, bool isRValue = false)
     {
         for (size_t i = 0; i < numPushes; i++)
@@ -124,6 +152,14 @@ protected:
         container.insert(containerPos, il);
     }
 
+    void ValidateAgainstTruthCheck(ContainerType& container)
+    {
+        // Test container should match the truth check sequence
+        EXPECT_EQ(container.size(), mTruthCheck.size());
+        for (size_t i = 0; (i < container.size()) && (i < mTruthCheck.size()); i++)
+            EXPECT_EQ(container[i], mTruthCheck[i]);
+    }
+
     TruthCheckType mTruthCheck;
 };
 
@@ -134,10 +170,10 @@ TYPED_TEST_SUITE_P(SequenceContainerTest);
 
 TYPED_TEST_P(SequenceContainerTest, Default_Constructor)
 {
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
-    EXPECT_TRUE(testModule.empty());
-    EXPECT_EQ(testModule.size(), 0);
+    EXPECT_TRUE(testContainer.empty());
+    EXPECT_EQ(testContainer.size(), 0);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
@@ -146,26 +182,26 @@ TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
     using IlIterator = typename IlType::iterator;
 
     // Test initializer list constructor
-    IlType                              il         = TestFixture::GetInitializerList();
-    typename TestFixture::ContainerType testModule = il;
+    IlType                              il = TestFixture::GetInitializerList();
+    typename TestFixture::ContainerType testContainer(il);
 
     // Use assertions for the first set of tests, if they fail there's no point testing the next
-    ASSERT_EQ(testModule.size(), il.size());
+    ASSERT_EQ(testContainer.size(), il.size());
 
     typename IlType::iterator ilCurr = il.begin();
-    for (const typename TestFixture::ElementType& value : testModule)
+    for (const typename TestFixture::ElementType& value : testContainer)
     {
         ASSERT_NE(ilCurr, il.end());
         ASSERT_EQ(value, *ilCurr++);
     }
 
     // Test range constructor
-    typename TestFixture::ContainerType testModule2(testModule.begin(), testModule.end());
+    typename TestFixture::ContainerType testContainer2(testContainer.begin(), testContainer.end());
 
-    EXPECT_EQ(testModule2.size(), il.size());
+    EXPECT_EQ(testContainer2.size(), il.size());
 
     ilCurr = il.begin();
-    for (const typename TestFixture::ElementType& value : testModule2)
+    for (const typename TestFixture::ElementType& value : testContainer2)
     {
         ASSERT_NE(ilCurr, il.end());
         EXPECT_EQ(value, *ilCurr++);
@@ -175,123 +211,144 @@ TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor)
 {
     typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
-    typename TestFixture::ContainerType testModule(rhs);
+    typename TestFixture::ContainerType testContainer(rhs);
 
-    EXPECT_TRUE(testModule == rhs);
+    EXPECT_TRUE(testContainer == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Default_Constructed_Rhs)
 {
     typename TestFixture::ContainerType rhs;
-    typename TestFixture::ContainerType testModule(rhs);
+    typename TestFixture::ContainerType testContainer(rhs);
 
-    EXPECT_TRUE(testModule == rhs);
+    EXPECT_TRUE(testContainer == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Empty_Rhs)
 {
     typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
-    typename TestFixture::ContainerType testModule(std::move(rhs));
+    typename TestFixture::ContainerType testContainer(std::move(rhs));
 
-    EXPECT_TRUE(testModule == rhs);
+    EXPECT_TRUE(testContainer == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor)
 {
     // TODO initializer list constructor
     typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TestFixture::GetInitializationValue());
-    typename TestFixture::ContainerType testModule(std::move(rhs));
+    typename TestFixture::ContainerType testContainer(std::move(rhs));
 
-    EXPECT_EQ(testModule.size(), MAX_TEST_CONTAINER_SIZE);
+    EXPECT_EQ(testContainer.size(), MAX_TEST_CONTAINER_SIZE);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Default_Constructed_Rhs)
 {
     // TODO initializer list constructor
     typename TestFixture::ContainerType rhs;
-    typename TestFixture::ContainerType testModule(std::move(rhs));
+    typename TestFixture::ContainerType testContainer(std::move(rhs));
 
-    EXPECT_TRUE(testModule.empty());
-    EXPECT_EQ(testModule.size(), 0);
+    EXPECT_TRUE(testContainer.empty());
+    EXPECT_EQ(testContainer.size(), 0);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Empty_Rhs)
 {
     // TODO initializer list constructor
     typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
-    typename TestFixture::ContainerType testModule(std::move(rhs));
+    typename TestFixture::ContainerType testContainer(std::move(rhs));
 
-    EXPECT_TRUE(testModule.empty());
-    EXPECT_EQ(testModule.size(), 0);
+    EXPECT_TRUE(testContainer.empty());
+    EXPECT_EQ(testContainer.size(), 0);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment)
 {
     typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
-    testModule = rhs;
+    testContainer = rhs;
 
-    EXPECT_TRUE(testModule == rhs);
+    EXPECT_TRUE(testContainer == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Default_Constructed_Rhs)
 {
     typename TestFixture::ContainerType rhs;
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
-    testModule = rhs;
+    testContainer = rhs;
 
-    EXPECT_TRUE(testModule == rhs);
+    EXPECT_TRUE(testContainer == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Empty_Rhs)
 {
     typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
-    testModule = rhs;
+    testContainer = rhs;
 
-    EXPECT_TRUE(testModule == rhs);
+    EXPECT_TRUE(testContainer == rhs);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Assignment)
 {
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
-    testModule = typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE, TestFixture::GetInitializationValue());
+    testContainer = typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE, TestFixture::GetInitializationValue());
 
-    EXPECT_EQ(testModule.size(), MAX_TEST_CONTAINER_SIZE);
+    EXPECT_EQ(testContainer.size(), MAX_TEST_CONTAINER_SIZE);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Default_Constructed_Rhs)
 {
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
-    testModule = typename TestFixture::ContainerType();
+    testContainer = typename TestFixture::ContainerType();
 
-    EXPECT_TRUE(testModule.empty());
-    EXPECT_EQ(testModule.size(), 0);
+    EXPECT_TRUE(testContainer.empty());
+    EXPECT_EQ(testContainer.size(), 0);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Empty_Rhs)
 {
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
-    testModule = typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE);
+    testContainer = typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE);
 
-    EXPECT_TRUE(testModule.empty());
-    EXPECT_EQ(testModule.size(), 0);
+    EXPECT_TRUE(testContainer.empty());
+    EXPECT_EQ(testContainer.size(), 0);
+}
+
+TYPED_TEST_P(SequenceContainerTest, Initializer_List_Assignment)
+{
+    using IlType     = std::initializer_list<typename TestFixture::ElementType>;
+    using IlIterator = typename IlType::iterator;
+
+    // Test initializer list constructor
+    IlType                              il = TestFixture::GetInitializerList();
+    typename TestFixture::ContainerType testContainer;
+
+    testContainer = il;
+
+    EXPECT_EQ(testContainer.size(), il.size());
+
+    typename IlType::iterator ilCurr = il.begin();
+    for (const typename TestFixture::ElementType& value : testContainer)
+    {
+        EXPECT_NE(ilCurr, il.end());
+        EXPECT_EQ(value, *ilCurr++);
+    }
 }
 
 //  Iterator tests  ====================================================================================================
 
 TYPED_TEST_P(SequenceContainerTest, If_Container_Is_Empty_Then_Iterator_Can_Not_Increment_Forward)
 {
-    typename TestFixture::ContainerType testModule;
+    typename TestFixture::ContainerType testContainer;
 
     size_t count = 0;
-    for (typename TestFixture::ElementType& value : testModule)
+    for (typename TestFixture::ElementType& value : testContainer)
         count++;
 
     ASSERT_EQ(count, 0);
@@ -299,63 +356,123 @@ TYPED_TEST_P(SequenceContainerTest, If_Container_Is_Empty_Then_Iterator_Can_Not_
 
 TYPED_TEST_P(SequenceContainerTest, If_Already_At_End_Then_Iterator_Can_Not_Increment_Forward)
 {
-    typename TestFixture::ContainerType         testModule(MAX_TEST_CONTAINER_SIZE);
-    typename TestFixture::ContainerIteratorType containerEnd = testModule.end();
+    typename TestFixture::ContainerType         testContainer(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerIteratorType containerEnd = testContainer.end();
 
     containerEnd++;
-    ASSERT_EQ(containerEnd, testModule.end());
+    ASSERT_EQ(containerEnd, testContainer.end());
 }
 
 //  Functional tests ===================================================================================================
 
+TYPED_TEST_P(SequenceContainerTest, Assign_Fill)
+{
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE);
+
+    this->AssignFill(testContainer, MAX_TEST_CONTAINER_SIZE);
+
+    this->ValidateAgainstTruthCheck(testContainer);
+}
+
+TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Fill_Replaces_Elements)
+{
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+
+    this->AssignFill(testContainer, MAX_TEST_CONTAINER_SIZE);
+
+    this->ValidateAgainstTruthCheck(testContainer);
+}
+
+TYPED_TEST_P(SequenceContainerTest, Assign_Range)
+{
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE);
+
+    this->AssignRange(testContainer);
+
+    this->ValidateAgainstTruthCheck(testContainer);
+}
+
+TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Range_Replaces_Elements)
+{
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+
+    this->AssignRange(testContainer);
+
+    this->ValidateAgainstTruthCheck(testContainer);
+}
+
+TYPED_TEST_P(SequenceContainerTest, Assign_Initializer_List)
+{
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE);
+
+    this->AssignInitList(testContainer);
+
+    this->ValidateAgainstTruthCheck(testContainer);
+}
+
+TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Initializer_List_Replaces_Elements)
+{
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+
+    this->AssignInitList(testContainer);
+
+    this->ValidateAgainstTruthCheck(testContainer);
+}
+
+TYPED_TEST_P(SequenceContainerTest, At_And_Square_Bracket_Operator_Return_Same_Elements)
+{
+    typename TestFixture::ContainerType testContainer(TestFixture::GetInitializerList());
+
+    for (size_t i = 0; i < testContainer.size(); i++)
+        EXPECT_EQ(testContainer.at(i), testContainer[i]);
+}
+
+TYPED_TEST_P(SequenceContainerTest, Clear_Empties_Buffer)
+{
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+
+    testContainer.clear();
+
+    EXPECT_TRUE(testContainer.empty());
+    EXPECT_EQ(testContainer.size(), 0);
+}
+
 TYPED_TEST_P(SequenceContainerTest, Push_Back_L_Value)
 {
-    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE);
 
-    this->PushBackSequentially(testModule, MAX_TEST_CONTAINER_SIZE);
+    this->PushBackSequentially(testContainer, MAX_TEST_CONTAINER_SIZE);
 
-    // Test container should match the truth check sequence
-    EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
-    for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Back_R_Value)
 {
-    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE);
 
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    this->PushBackSequentially(testModule, MAX_TEST_CONTAINER_SIZE, true);
+    this->PushBackSequentially(testContainer, MAX_TEST_CONTAINER_SIZE, true);
 
-    // Test container should match the truth check sequence
-    EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
-    for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_L_Value)
 {
-    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE);
 
-    this->PushFrontSequentially(testModule, MAX_TEST_CONTAINER_SIZE);
+    this->PushFrontSequentially(testContainer, MAX_TEST_CONTAINER_SIZE);
 
-    // Test container should match the truth check sequence
-    EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
-    for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_R_Value)
 {
-    typename TestFixture::ContainerType testModule(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType testContainer(MAX_TEST_CONTAINER_SIZE);
 
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    this->PushFrontSequentially(testModule, MAX_TEST_CONTAINER_SIZE, true);
+    this->PushFrontSequentially(testContainer, MAX_TEST_CONTAINER_SIZE, true);
 
-    // Test container should match the truth check sequence
-    EXPECT_EQ(testModule.size(), this->mTruthCheck.size());
-    for (size_t i = 0; i < MAX_TEST_CONTAINER_SIZE; i++)
-        EXPECT_EQ(testModule[i], this->mTruthCheck[i]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Back_L_Value)
@@ -368,7 +485,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Back_L_Value)
     // Now insert at the end
     this->InsertValueAtIndexedPosition(testContainer, MAX_TEST_CONTAINER_SIZE - 1);
 
-    ASSERT_EQ(testContainer.back(), this->mTruthCheck.back());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Back_R_Value)
@@ -382,7 +499,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Back_R_Value)
     // 'true' flag in last argument (default = 'false') signals an R-value operation
     this->InsertValueAtIndexedPosition(testContainer, MAX_TEST_CONTAINER_SIZE - 1, true);
 
-    ASSERT_EQ(testContainer.back(), this->mTruthCheck.back());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Fill_Back)
@@ -397,8 +514,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Fill_Back)
     size_t emptyCount = MAX_TEST_CONTAINER_SIZE - fillCount;
     this->InsertFillAtIndexedPosition(testContainer, (MAX_TEST_CONTAINER_SIZE - emptyCount), emptyCount);
 
-    // TODO check whole insert zone
-    ASSERT_EQ(testContainer.back(), this->mTruthCheck.back());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Range_Back)
@@ -417,8 +533,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Range_Back)
     size_t emptyCount = containerSize - ilSize;
     this->InsertRangeAtIndexedPosition(testContainer, (containerSize - emptyCount));
 
-    // TODO check whole insert zone
-    ASSERT_EQ(testContainer.back(), this->mTruthCheck.back());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Initializer_List_Back)
@@ -436,8 +551,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Initializer_List_Back)
     size_t emptyCount = containerSize - ilSize;
     this->InsertInitListAtIndexedPosition(testContainer, (containerSize - emptyCount));
 
-    // TODO check whole insert zone
-    ASSERT_EQ(testContainer.back(), this->mTruthCheck.back());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Front_L_Value)
@@ -450,7 +564,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Front_L_Value)
     // Now insert at the end
     this->InsertValueAtIndexedPosition(testContainer, 0);
 
-    ASSERT_EQ(testContainer.front(), this->mTruthCheck.front());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Front_R_Value)
@@ -464,7 +578,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Front_R_Value)
     // 'true' flag in last argument (default = 'false') signals an R-value operation
     this->InsertValueAtIndexedPosition(testContainer, 0, true);
 
-    ASSERT_EQ(testContainer.front(), this->mTruthCheck.front());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Fill_Front)
@@ -479,8 +593,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Fill_Front)
     size_t emptyCount = MAX_TEST_CONTAINER_SIZE - fillCount;
     this->InsertFillAtIndexedPosition(testContainer, 0, emptyCount);
 
-    // TODO check whole insert zone
-    ASSERT_EQ(testContainer.front(), this->mTruthCheck.front());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Range_Front)
@@ -499,8 +612,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Range_Front)
     size_t emptyCount = containerSize - ilSize;
     this->InsertRangeAtIndexedPosition(testContainer, 0);
 
-    // TODO check whole insert zone
-    ASSERT_EQ(testContainer.front(), this->mTruthCheck.front());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Initializer_List_Front)
@@ -518,8 +630,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Initializer_List_Front)
     size_t emptyCount = containerSize - ilSize;
     this->InsertInitListAtIndexedPosition(testContainer, 0);
 
-    // TODO check whole insert zone
-    ASSERT_EQ(testContainer.front(), this->mTruthCheck.front());
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_L_Value)
@@ -533,9 +644,7 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_L_Value)
     size_t insertPos = MAX_TEST_CONTAINER_SIZE / 2;
     this->InsertValueAtIndexedPosition(testContainer, insertPos);
 
-    EXPECT_EQ(testContainer.front(), this->mTruthCheck.front());
-    EXPECT_EQ(testContainer.back(), this->mTruthCheck.back());
-    EXPECT_EQ(testContainer[insertPos], this->mTruthCheck[insertPos]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_R_Value)
@@ -550,9 +659,7 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_R_Value)
     size_t insertPos = MAX_TEST_CONTAINER_SIZE / 2;
     this->InsertValueAtIndexedPosition(testContainer, insertPos, true);
 
-    EXPECT_EQ(testContainer.front(), this->mTruthCheck.front());
-    EXPECT_EQ(testContainer.back(), this->mTruthCheck.back());
-    EXPECT_EQ(testContainer[insertPos], this->mTruthCheck[insertPos]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_Fill)
@@ -571,8 +678,7 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_Fill)
     EXPECT_EQ(testContainer.front(), this->mTruthCheck.front());
     EXPECT_EQ(testContainer.back(), this->mTruthCheck.back());
 
-    // TODO check whole insert zone
-    EXPECT_EQ(testContainer[insertPos], this->mTruthCheck[insertPos]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_Range)
@@ -595,8 +701,7 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_Range)
     EXPECT_EQ(testContainer.front(), this->mTruthCheck.front());
     EXPECT_EQ(testContainer.back(), this->mTruthCheck.back());
 
-    // TODO check whole insert zone
-    EXPECT_EQ(testContainer[insertPos], this->mTruthCheck[insertPos]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_InitializerList)
@@ -618,24 +723,24 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_InitializerList)
     EXPECT_EQ(testContainer.front(), this->mTruthCheck.front());
     EXPECT_EQ(testContainer.back(), this->mTruthCheck.back());
 
-    // TODO check whole insert zone
-    EXPECT_EQ(testContainer[insertPos], this->mTruthCheck[insertPos]);
+    this->ValidateAgainstTruthCheck(testContainer);
 }
 
 //  End of tests =======================================================================================================
 
 // Register tests to test suite
-REGISTER_TYPED_TEST_SUITE_P(SequenceContainerTest, Default_Constructor, Iterator_Constructors, Copy_Constructor,
-                            Copy_Constructor_With_Default_Constructed_Rhs, Copy_Constructor_With_Empty_Rhs,
-                            Move_Constructor, Move_Constructor_With_Default_Constructed_Rhs,
-                            Move_Constructor_With_Empty_Rhs, Copy_Assignment,
-                            Copy_Assignment_With_Default_Constructed_Rhs, Copy_Assignment_With_Empty_Rhs,
-                            Move_Assignment, Move_Assignment_With_Default_Constructed_Rhs,
-                            Move_Assignment_With_Empty_Rhs,
-                            If_Container_Is_Empty_Then_Iterator_Can_Not_Increment_Forward, Push_Back_L_Value,
-                            If_Already_At_End_Then_Iterator_Can_Not_Increment_Forward, Push_Back_R_Value,
-                            Push_Front_L_Value, Push_Front_R_Value, Insert_Back_L_Value, Insert_Back_R_Value,
-                            Insert_Fill_Back, Insert_Range_Back, Insert_Initializer_List_Back, Insert_Front_L_Value,
-                            Insert_Front_R_Value, Insert_Fill_Front, Insert_Range_Front, Insert_Initializer_List_Front,
-                            Random_Insert_L_Value, Random_Insert_R_Value, Random_Insert_Fill, Random_Insert_Range,
-                            Random_Insert_InitializerList);
+REGISTER_TYPED_TEST_SUITE_P(
+    SequenceContainerTest, Default_Constructor, Iterator_Constructors, Copy_Constructor,
+    Copy_Constructor_With_Default_Constructed_Rhs, Copy_Constructor_With_Empty_Rhs, Move_Constructor,
+    Move_Constructor_With_Default_Constructed_Rhs, Move_Constructor_With_Empty_Rhs, Copy_Assignment,
+    Copy_Assignment_With_Default_Constructed_Rhs, Copy_Assignment_With_Empty_Rhs, Move_Assignment,
+    Move_Assignment_With_Default_Constructed_Rhs, Move_Assignment_With_Empty_Rhs, Initializer_List_Assignment,
+    If_Container_Is_Empty_Then_Iterator_Can_Not_Increment_Forward,
+    If_Already_At_End_Then_Iterator_Can_Not_Increment_Forward, Assign_Fill, If_Full_Then_Assign_Fill_Replaces_Elements,
+    Assign_Range, If_Full_Then_Assign_Range_Replaces_Elements, Assign_Initializer_List,
+    If_Full_Then_Assign_Initializer_List_Replaces_Elements, At_And_Square_Bracket_Operator_Return_Same_Elements,
+    Clear_Empties_Buffer, Push_Back_L_Value, Push_Back_R_Value, Push_Front_L_Value, Push_Front_R_Value,
+    Insert_Back_L_Value, Insert_Back_R_Value, Insert_Fill_Back, Insert_Range_Back, Insert_Initializer_List_Back,
+    Insert_Front_L_Value, Insert_Front_R_Value, Insert_Fill_Front, Insert_Range_Front, Insert_Initializer_List_Front,
+    Random_Insert_L_Value, Random_Insert_R_Value, Random_Insert_Fill, Random_Insert_Range,
+    Random_Insert_InitializerList);

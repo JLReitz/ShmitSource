@@ -19,6 +19,11 @@ public:
         return 1;
     }
 
+    static int GetAssignValue()
+    {
+        return gIncrementingGetIntValue;
+    }
+
     static int GetInsertValue()
     {
         return gIncrementingGetIntValue++;
