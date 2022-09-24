@@ -39,7 +39,7 @@ ForEachMacros: ['foreach', 'Q_FOREACH', 'BOOST_FOREACH']
 IncludeBlocks: Preserve
 IndentCaseLabels: true
 IndentGotoLabels: true
-IndentPPDirectives: BeforeHash
+IndentPPDirectives: None
 IndentWidth: 4
 IndentWrappedFunctionNames: true
 KeepEmptyLinesAtTheStartOfBlocks: false

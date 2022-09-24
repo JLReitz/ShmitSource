@@ -2,6 +2,8 @@
 
 #include "BufferImpl.hpp"
 
+#include <ShmitCore/Logging/StaticEventLoggingInterface.hpp>
+
 #include <iterator>
 #include <type_traits>
 
@@ -44,6 +46,8 @@ public:
     Buffer(const Buffer& rhs);
     Buffer(Buffer&& rhs) noexcept;
 
+    constexpr Buffer(T* const ext, size_t bufferSize);
+
     ~Buffer() noexcept;
 
     size_t size() const noexcept;
@@ -73,29 +77,12 @@ public:
     T&       back() noexcept;
     const T& back() const noexcept;
 
-    void pop_front() noexcept;
-    void push_front(const T& value) noexcept;
-    void push_front(T&& value) noexcept;
-
-    void pop_back() noexcept;
-    void push_back(const T& value) noexcept;
-    void push_back(T&& value) noexcept;
-
     void assign(size_t count, const T& value);
     void assign(std::initializer_list<T> il);
 
     template<typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
     void assign(IteratorTypeArg i, IteratorTypeArg j);
 
-    iterator insert(iterator position, const T& value) noexcept;
-    iterator insert(iterator position, T&& value) noexcept;
-    iterator insert(iterator position, size_t n, const T& value) noexcept;
-    iterator insert(iterator position, std::initializer_list<T> il) noexcept;
-
-    template<typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
-    iterator insert(iterator position, IteratorTypeArg i, IteratorTypeArg j) noexcept;
-
-    // TODO
     template<typename... Args>
     iterator emplace(iterator position, Args&&... args) noexcept;
 
@@ -105,14 +92,28 @@ public:
     template<typename... Args>
     void emplace_back(Args&&... args) noexcept;
 
+    iterator insert(iterator position, const T& value) noexcept;
+    iterator insert(iterator position, T&& value) noexcept;
+    iterator insert(iterator position, size_t n, const T& value) noexcept;
+    iterator insert(iterator position, std::initializer_list<T> il) noexcept;
+
+    template<typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
+    iterator insert(iterator position, IteratorTypeArg i, IteratorTypeArg j) noexcept;
+
+    void pop_front() noexcept;
+    void push_front(const T& value) noexcept;
+    void push_front(T&& value) noexcept;
+
+    void pop_back() noexcept;
+    void push_back(const T& value) noexcept;
+    void push_back(T&& value) noexcept;
+
     void swap(Buffer& rhs) noexcept;
 
     iterator erase(iterator position) noexcept;
     iterator erase(iterator position, iterator i, iterator j) noexcept;
 
     void clear() noexcept;
-
-    Allocator get_allocator() const noexcept;
 
     Buffer& operator=(const Buffer& rhs);
     Buffer& operator=(Buffer&& rhs);
@@ -460,6 +461,87 @@ typename Buffer<T, Allocator>::const_reverse_iterator Buffer<T, Allocator>::cren
 }
 
 template<typename T, class Allocator>
+template<typename... Args>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::emplace(typename Buffer<T, Allocator>::iterator position,
+                                                                      Args&&... args) noexcept
+{
+    LOG("Emplacing element")
+
+    PrepareForRandomInsert(position, 1);
+    alloc_traits::construct(mAllocator, &(*position), std::forward<Args>(args)...);
+
+    return position;
+}
+
+template<typename T, class Allocator>
+template<typename... Args>
+void Buffer<T, Allocator>::emplace_back(Args&&... args) noexcept
+{
+    LOG("Emplacing element back")
+
+    size_t emplaceStep  = (full()) ? 1 : 0;
+    size_t emplaceIndex = _M_roll_over_forward(mBackOfBuffer, emplaceStep);
+
+    // Check for overflow
+    if (emplaceIndex == mFrontOfBuffer)
+    {
+        // Increment front of buffer forward 1 step to accomodate new data
+        mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, 1);
+        mIsFullFlag    = false; // Clear full flag since data has been truncated and is not filled back in yet
+        LOG("Overflow detected")
+        LOG("Moving front of buffer -> " << mFrontOfBuffer)
+    }
+
+    // Emplace element
+    LOG("Starting emplacement")
+    iterator emplacePosition(*this, emplaceIndex);
+    alloc_traits::construct(mAllocator, &(*emplacePosition), std::forward<Args>(args)...);
+
+    // Now update back of buffer
+    size_t newBackOfBuffer = _M_roll_over_forward(emplaceIndex, 1);
+    if (newBackOfBuffer == mFrontOfBuffer) // Re-do this check in case the buffer has been accessed in the meantime
+    {
+        mBackOfBuffer = emplaceIndex;
+        mIsFullFlag   = true;
+        LOG("Setting full flag")
+    }
+    else
+        mBackOfBuffer = newBackOfBuffer;
+}
+
+template<typename T, class Allocator>
+template<typename... Args>
+void Buffer<T, Allocator>::emplace_front(Args&&... args) noexcept
+{
+    LOG("Emplacing element front")
+
+    size_t emplaceIndex = _M_roll_over_backward(mFrontOfBuffer, 1);
+
+    // Check for overflow
+    if (full())
+    {
+        // Decrement the back of buffer forward 1 step to accomodate new data
+        mBackOfBuffer = _M_roll_over_backward(mBackOfBuffer, 1);
+        mIsFullFlag   = false; // Clear full flag since data has been truncated and is not filled back in yet
+        LOG("Overflow detected")
+        LOG("Moving back of buffer -> " << mBackOfBuffer)
+    }
+
+    // Emplace element
+    LOG("Starting emplacement")
+    iterator emplacePosition(*this, emplaceIndex);
+    alloc_traits::construct(mAllocator, &(*emplacePosition), std::forward<Args>(args)...);
+
+    // Now update front of buffer
+    mFrontOfBuffer = emplaceIndex;
+    if (_M_roll_over_backward(mFrontOfBuffer, 1) == mBackOfBuffer)
+    {
+        LOG("Setting full flag")
+        mIsFullFlag = true;
+    }
+}
+
+template<typename T, class Allocator>
 bool Buffer<T, Allocator>::empty() const noexcept
 {
     return (mFrontOfBuffer == mBackOfBuffer);
@@ -496,12 +578,6 @@ bool Buffer<T, Allocator>::full() const noexcept
 }
 
 template<typename T, class Allocator>
-Allocator Buffer<T, Allocator>::get_allocator() const noexcept
-{
-    return mAllocator;
-}
-
-template<typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
                                                                      const T& value) noexcept
 {
@@ -511,13 +587,9 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
 
     // If the position is the back or beginning of the buffer, perform a push
     if (position == begin())
-    {
         return FillPushFront(1, copyOfValue);
-    }
     else if (position == end())
-    {
         return FillPushBack(1, copyOfValue);
-    }
 
     // Otherwise call the random-access insert routine
     return FillInsert(position, 1, copyOfValue);
@@ -882,11 +954,12 @@ template<typename Arg>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<T, Allocator>::iterator position,
                                                                          size_t n, Arg&& value) noexcept
 {
-    LOG("Inserting " << n << " element[s]")
+    // LOG("Inserting " << n << " element[s]")
+    LOG_INFO_EVENT("fill-insert", "Inserting %d elements", n)
 
     if (n >= mBufferMaxSize)
     {
-        LOG("Buffer overfill detected")
+        LOG_WARNING_EVENT_STRING("fill-insert", "%s", "Buffer overfill detected")
 
         // Fill in the entire buffer starting and set the full flag
         size_t mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Back of buffer sits behind front when full
@@ -941,7 +1014,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushBack(size_
 
     // Now update back of buffer
     size_t newBackOfBuffer = _M_roll_over_forward(endOfInsertIndex, 1);
-    if (newBackOfBuffer == mFrontOfBuffer)
+    if (newBackOfBuffer == mFrontOfBuffer) // Re-do this check in case the buffer has been accessed in the meantime
     {
         mBackOfBuffer = endOfInsertIndex;
         mIsFullFlag   = true;
@@ -1214,7 +1287,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushBack(Iter
 
     // Now update back of buffer
     size_t newBackOfBuffer = _M_roll_over_forward(endOfInsertIndex, 1);
-    if (newBackOfBuffer == mFrontOfBuffer)
+    if (newBackOfBuffer == mFrontOfBuffer) // Re-do this check in case the buffer has been accessed in the meantime
     {
         mBackOfBuffer = endOfInsertIndex;
         mIsFullFlag   = true;

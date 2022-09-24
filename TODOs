@@ -1,0 +1,3 @@
+- Check if shmit::VoidLogger is assigned to any of the logging interfaces and warn if so (unless it's the Diagnostics 
+  interface of course, then we can't do anything)
+- Prepend timestamps to log strings before passing to LoggerInterface

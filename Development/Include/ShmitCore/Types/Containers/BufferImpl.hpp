@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ShmitCore/StdIncludes.hpp>
 #include <ShmitCore/Types/StdTypes.hpp>
 
 #include <initializer_list>

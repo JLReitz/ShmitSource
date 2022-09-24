@@ -12,6 +12,7 @@ target_include_directories(BufferTest PUBLIC
 # Link gtest_main to targets
 target_link_libraries(BufferTest
     gtest_main
+    ShmitCore
 )
 
 # Discover all unit tests
