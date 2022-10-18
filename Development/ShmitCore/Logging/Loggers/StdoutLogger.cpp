@@ -7,7 +7,7 @@ namespace shmit
 namespace log
 {
 
-StdoutLogger::StdoutLogger() : OStreamLogger(::std::cout)
+StdoutLogger::StdoutLogger(Level filter) : OStreamLogger(::std::cout, filter)
 {
 }
 

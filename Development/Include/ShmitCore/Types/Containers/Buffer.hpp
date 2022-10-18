@@ -2,7 +2,9 @@
 
 #include "BufferImpl.hpp"
 
-#include <ShmitCore/Logging/StaticEventLoggingInterface.hpp>
+#include <ShmitCore/Logging/Diagnostics/Logging.hpp>
+#include <ShmitCore/Logging/Events/Logging.hpp>
+#include <ShmitCore/Types/Generic/Named.hpp>
 
 #include <iterator>
 #include <type_traits>
@@ -13,11 +15,18 @@ namespace shmit
 {
 
 template<typename T, class Allocator = std::allocator<T>>
-class Buffer : public impl::BufferBase
+class Buffer : public impl::BufferBase, Named
 {
     using alloc_traits = __gnu_cxx::__alloc_traits<Allocator>;
 
 public:
+    DIAGNOSTIC_CONTEXT(shmit::Buffer)
+    DIAGNOSTIC_POSIT(Constructing, shmit::log::Level::eDebug, shmit::log::diagnostics::NoData())
+    DIAGNOSTIC_POSIT(Destructing, shmit::log::Level::eDebug, shmit::log::diagnostics::NoData())
+    DIAGNOSTIC_POSIT(Emplace_Back, shmit::log::Level::eDebug, shmit::log::diagnostics::Count())
+    DIAGNOSTIC_POSIT(Emplace_Front, shmit::log::Level::eDebug, shmit::log::diagnostics::Count())
+    DIAGNOSTIC_POSIT(Emplace_Random, shmit::log::Level::eDebug, shmit::log::diagnostics::Count())
+
     using value_type      = typename alloc_traits::value_type;
     using pointer         = typename alloc_traits::pointer;
     using const_pointer   = typename alloc_traits::const_pointer;
@@ -34,14 +43,14 @@ public:
     using size_type       = typename impl::BufferBase::size_type;
     using difference_type = typename impl::BufferBase::difference_type;
 
-    Buffer(const Allocator& allocator = Allocator()) noexcept;
-    Buffer(size_t bufferSize, const Allocator& allocator = Allocator());
-    Buffer(size_t bufferSize, const T& init, const Allocator& allocator = Allocator());
+    Buffer(char const* name = nullptr, const Allocator& allocator = Allocator()) noexcept;
+    Buffer(size_t bufferSize, char const* name = nullptr, const Allocator& allocator = Allocator());
+    Buffer(size_t bufferSize, const T& init, char const* name = nullptr, const Allocator& allocator = Allocator());
 
-    Buffer(std::initializer_list<T> il, const Allocator& allocator = Allocator());
+    Buffer(std::initializer_list<T> il, char const* name = nullptr, const Allocator& allocator = Allocator());
 
     template<typename IteratorTypeArg, typename = std::_RequireInputIter<IteratorTypeArg>>
-    Buffer(IteratorTypeArg i, IteratorTypeArg j, const Allocator& allocator = Allocator());
+    Buffer(IteratorTypeArg i, IteratorTypeArg j, char const* name = nullptr, const Allocator& allocator = Allocator());
 
     Buffer(const Buffer& rhs);
     Buffer(Buffer&& rhs) noexcept;
@@ -179,13 +188,18 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T, class Allocator>
-Buffer<T, Allocator>::Buffer(const Allocator& allocator) noexcept : BufferBase(), mAllocator(allocator)
+Buffer<T, Allocator>::Buffer(char const* name, const Allocator& allocator) noexcept
+    : BufferBase(), Named(name), mAllocator(allocator)
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
 }
 
 template<typename T, class Allocator>
-Buffer<T, Allocator>::Buffer(size_t bufferSize, const Allocator& allocator) : BufferBase(), mAllocator(allocator)
+Buffer<T, Allocator>::Buffer(size_t bufferSize, char const* name, const Allocator& allocator)
+    : BufferBase(), Named(name), mAllocator(allocator)
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+
     // Only continue if the given buffer size is > 0
     if (bufferSize > 0)
     {
@@ -193,15 +207,15 @@ Buffer<T, Allocator>::Buffer(size_t bufferSize, const Allocator& allocator) : Bu
         // _M_allocate_buffer() is guaranteed to return a valid address or throw an exception
         mStartAddress  = AllocateBuffer(bufferSize);
         mBufferMaxSize = bufferSize;
-
-        LOG("Buffer of size " << mBufferMaxSize << " created at " << std::hex << (uint64_t)mStartAddress << std::dec)
     }
 }
 
 template<typename T, class Allocator>
-Buffer<T, Allocator>::Buffer(size_t bufferSize, const T& init, const Allocator& allocator)
-    : BufferBase(), mAllocator(allocator)
+Buffer<T, Allocator>::Buffer(size_t bufferSize, const T& init, char const* name, const Allocator& allocator)
+    : BufferBase(), Named(name), mAllocator(allocator)
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+
     // Only continue if the given buffer size is > 0
     if (bufferSize > 0)
     {
@@ -222,9 +236,11 @@ Buffer<T, Allocator>::Buffer(size_t bufferSize, const T& init, const Allocator& 
 }
 
 template<typename T, class Allocator>
-Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, const Allocator& allocator)
-    : BufferBase(), mAllocator(allocator)
+Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, char const* name, const Allocator& allocator)
+    : BufferBase(), Named(name), mAllocator(allocator)
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+
     // Only continue if the initializer list contains some data
     size_t listSize = il.size();
     if (listSize > 0)
@@ -242,9 +258,11 @@ Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, const Allocator& alloc
 
 template<typename T, class Allocator>
 template<typename IteratorTypeArg, typename>
-Buffer<T, Allocator>::Buffer(IteratorTypeArg i, IteratorTypeArg j, const Allocator& allocator)
-    : BufferBase(), mAllocator(allocator)
+Buffer<T, Allocator>::Buffer(IteratorTypeArg i, IteratorTypeArg j, char const* name, const Allocator& allocator)
+    : BufferBase(), Named(name), mAllocator(allocator)
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+
     size_t rangeSize = j - i;
     if (rangeSize > 0)
     {
@@ -263,6 +281,8 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(const Buffer& rhs)
     : BufferBase(), mAllocator(alloc_traits::select_on_container_copy_construction(rhs.mAllocator))
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+
     // Only continue if the right hand side buffer is initialized and has max size > 0
     if ((rhs.mStartAddress != nullptr) && (rhs.mBufferMaxSize > 0))
     {
@@ -277,11 +297,17 @@ Buffer<T, Allocator>::Buffer(const Buffer& rhs)
         while (rhsCurr != rhs.cend())
             push_back(*rhsCurr++);
     }
+
+    // Copy name from rhs to this
+    char const* rhs_name = rhs.GetName();
+    SetName(rhs_name);
 }
 
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(Buffer&& rhs) noexcept : BufferBase(), mAllocator(std::move(rhs.mAllocator))
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+
     // Copy start address and other members from the right hand side to this
     mStartAddress  = rhs.mStartAddress;
     mBufferMaxSize = rhs.mBufferMaxSize;
@@ -291,11 +317,16 @@ Buffer<T, Allocator>::Buffer(Buffer&& rhs) noexcept : BufferBase(), mAllocator(s
     // Clear right hand side, including the start address
     rhs.mStartAddress = nullptr;
     rhs.clear();
+
+    // Copy name from rhs to this
+    char const* rhs_name = rhs.GetName();
+    SetName(rhs_name);
 }
 
 template<typename T, class Allocator>
 Buffer<T, Allocator>::~Buffer() noexcept
 {
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Destructing)
     DeallocateBuffer();
 }
 
@@ -407,7 +438,8 @@ template<typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::begin() noexcept
 {
     if (empty())
-        return iterator(*this, mBufferMaxSize); // Return iterator to end instead (TODO there's probably a better way)
+        return iterator(*this,
+                        mBufferMaxSize); // Return iterator to end instead (TODO there's probably a better way)
 
     return iterator(*this);
 }
@@ -465,7 +497,7 @@ template<typename... Args>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::emplace(typename Buffer<T, Allocator>::iterator position,
                                                                       Args&&... args) noexcept
 {
-    LOG("Emplacing element")
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Emplace_Random)
 
     PrepareForRandomInsert(position, 1);
     alloc_traits::construct(mAllocator, &(*position), std::forward<Args>(args)...);
@@ -477,7 +509,7 @@ template<typename T, class Allocator>
 template<typename... Args>
 void Buffer<T, Allocator>::emplace_back(Args&&... args) noexcept
 {
-    LOG("Emplacing element back")
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Emplace_Back)
 
     size_t emplaceStep  = (full()) ? 1 : 0;
     size_t emplaceIndex = _M_roll_over_forward(mBackOfBuffer, emplaceStep);
@@ -513,7 +545,7 @@ template<typename T, class Allocator>
 template<typename... Args>
 void Buffer<T, Allocator>::emplace_front(Args&&... args) noexcept
 {
-    LOG("Emplacing element front")
+    LOG_MEMBER_DIAGNOSTIC_POSIT(Emplace_Front)
 
     size_t emplaceIndex = _M_roll_over_backward(mFrontOfBuffer, 1);
 
@@ -955,11 +987,11 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
                                                                          size_t n, Arg&& value) noexcept
 {
     // LOG("Inserting " << n << " element[s]")
-    LOG_INFO_EVENT("fill-insert", "Inserting %d elements", n)
+    LOG_INFO_EVENT("Buffer", "fill-insert", "Inserting %d elements", n)
 
     if (n >= mBufferMaxSize)
     {
-        LOG_WARNING_EVENT_STRING("fill-insert", "%s", "Buffer overfill detected")
+        LOG_WARNING_EVENT_STRING("Buffer", "fill-insert", "Buffer overfill detected")
 
         // Fill in the entire buffer starting and set the full flag
         size_t mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Back of buffer sits behind front when full
@@ -1388,7 +1420,6 @@ bool operator!=(const Buffer<ValueTypeArg, AllocatorTypeArg>& rhs,
 
 namespace std
 {
-
 template<typename T, class Allocator>
 void swap(shmit::Buffer<T, Allocator>& rhs, shmit::Buffer<T, Allocator>& lhs) noexcept
 {

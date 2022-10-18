@@ -7,10 +7,21 @@ namespace shmit
 namespace log
 {
 
-class VoidLogger : public LoggerInterface
+/// @brief Logger that publishes to the void
+class VoidLogger : public Logger
 {
 public:
-    void LogEntry(const Type type, const Level level, const char* id, const char* msg) override;
+    /// @brief Default constructor
+    VoidLogger();
+
+private:
+    /// @brief Yeets that entry in to the void
+    /// @param[in] type Log type
+    /// @param[in] level Log level
+    /// @param[in] id Log ID
+    /// @param[in] context Log context
+    /// @param[in] msg Log message
+    void PublishEntry(const char* type, const char* level, const char* id, const char* context, const char* msg) final;
 };
 
 } // namespace log

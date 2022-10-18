@@ -10,20 +10,40 @@ namespace shmit
 namespace log
 {
 
+/// @brief Logger extension for publishing entries to an output stream
+/// @tparam OStreamType Output stream type
 template<class OStreamType>
-class OStreamLogger : public LoggerInterface
+class OStreamLogger : public Logger
 {
 public:
-    OStreamLogger();
-    OStreamLogger(OStreamType& oStream);
+    /// @brief Default constructor. The OStreamLogger remains uninitialized and will not publish any entries until
+    /// 'Load()' is called.
+    /// @param[in] filter Log entries below this level will not be published (default 'eTrace')
+    OStreamLogger(Level filter = Level::eTrace);
 
-    void LogEntry(const Type type, const Level level, const char* id, const char* msg) override;
+    /// @brief Constructs and initializes an OStreamLogger, making it available to publish entries
+    /// @param[in] oStream Reference to output stream instance
+    /// @param[in] filter Log entries below this level will not be published
+    OStreamLogger(OStreamType& oStream, Level filter = Level::eTrace);
 
+    /// @brief Loads an output stream in to the logger, making it available to publish entries. If the logger was
+    /// previously initialized with a different output stream, that reference will be overwritten by the new one.
+    /// @param[in] oStream Reference to output stream instance
     virtual void Load(OStreamType& oStream);
 
 protected:
     OStreamType* mOStream;
     std::mutex   mOStreamMutex;
+
+private:
+    /// @brief Publishes an entry
+    /// @param[in] type Log type
+    /// @param[in] level Log level
+    /// @param[in] id Log ID
+    /// @param[in] context Log context
+    /// @param[in] msg Log message
+    void PublishEntry(char const* type, char const* level, char const* id, char const* context,
+                      char const* msg) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -31,12 +51,12 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class OStreamType>
-OStreamLogger<OStreamType>::OStreamLogger() : mOStream(nullptr)
+OStreamLogger<OStreamType>::OStreamLogger(Level filter) : mOStream(nullptr), Logger(filter)
 {
 }
 
 template<class OStreamType>
-OStreamLogger<OStreamType>::OStreamLogger(OStreamType& oStream) : mOStream(&oStream)
+OStreamLogger<OStreamType>::OStreamLogger(OStreamType& oStream, Level filter) : mOStream(&oStream), Logger(filter)
 {
 }
 
@@ -48,16 +68,28 @@ void OStreamLogger<OStreamType>::Load(OStreamType& oStream)
     mOStream = &oStream;
 }
 
-template<class OStreamType>
-void OStreamLogger<OStreamType>::LogEntry(const Type type, const Level level, const char* id, const char* msg)
-{
-    const char* typeStr  = TypeToString(type);
-    const char* levelStr = LevelToString(level);
+//  Private ============================================================================================================
 
+template<class OStreamType>
+void OStreamLogger<OStreamType>::PublishEntry(char const* type, char const* level, char const* id, char const* context,
+                                              char const* msg)
+{
     if (mOStream)
     {
         std::lock_guard<std::mutex> scopeLock(mOStreamMutex);
-        *mOStream << typeStr << ',' << levelStr << ',' << id << ',' << msg << "\n";
+
+        // Insert elements separately, the *hope* (it is very, very likely) is that the compiler will put them in the
+        // correct order
+        *mOStream << type;
+        *mOStream << ',';
+        *mOStream << level;
+        *mOStream << ',';
+        *mOStream << id;
+        *mOStream << ',';
+        *mOStream << context;
+        *mOStream << ',';
+        *mOStream << msg;
+        *mOStream << "\n";
     }
 }
 

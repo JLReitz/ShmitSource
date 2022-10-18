@@ -10,18 +10,18 @@ namespace log
 namespace detail
 {
 
-constexpr const char* typeDataStr        = "DATA";
-constexpr const char* typeDiagnosticsStr = "DIAG";
-constexpr const char* typeEventStr       = "EVENT";
+constexpr char const* typeDataStr        = "DATA";
+constexpr char const* typeDiagnosticsStr = "DIAG";
+constexpr char const* typeEventStr       = "EVENT";
 
-constexpr const char* levelTraceStr    = "TRACE";
-constexpr const char* levelDebugStr    = "DEBUG";
-constexpr const char* levelInfoStr     = "INFO";
-constexpr const char* levelWarningeStr = "WARNING";
-constexpr const char* levelErrorStr    = "ERROR";
-constexpr const char* levelFatalStr    = "FATAL";
+constexpr char const* levelTraceStr    = "TRACE";
+constexpr char const* levelDebugStr    = "DEBUG";
+constexpr char const* levelInfoStr     = "INFO";
+constexpr char const* levelWarningeStr = "WARNING";
+constexpr char const* levelErrorStr    = "ERROR";
+constexpr char const* levelFatalStr    = "FATAL";
 
-constexpr const char* unknownValueStr = "UNKNOWN";
+constexpr char const* unknownValueStr = "UNKNOWN";
 
 } // namespace detail
 
