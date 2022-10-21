@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LoggerInterface.hpp"
+#include "Logger.hpp"
 
 #include <cstring>
 #include <mutex>
@@ -36,7 +36,7 @@ protected:
     std::mutex   mOStreamMutex;
 
 private:
-    /// @brief Publishes an entry
+    /// Publishes an entry
     /// @param[in] type Log type
     /// @param[in] level Log level
     /// @param[in] id Log ID

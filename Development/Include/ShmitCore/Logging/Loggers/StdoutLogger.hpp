@@ -19,7 +19,7 @@ public:
 
     /// @brief StdoutLogger does not allow for a different output stream to be assigned to any instance. Calling this
     /// method override will not do anything.
-    /// @param[in] oStream Reference to std::ostream instance
+    /// @param[in] oStream Reference to std::ostream instance (unused)
     void Load(::std::ostream& oStream) final;
 };
 

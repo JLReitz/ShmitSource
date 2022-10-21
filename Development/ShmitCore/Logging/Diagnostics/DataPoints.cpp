@@ -11,7 +11,7 @@ namespace diagnostics
 namespace detail
 {
 
-size_t ExecuteCount(uint8_t* const_data, uint8_t* variable_data, char* out_str, size_t str_length)
+size_t ProcessCount(uint8_t const* const_data, uint8_t* variable_data, char* out_str, size_t str_length)
 {
     // Lay 'CountVariableData' struct over variable data
     CountVariableData* data = (CountVariableData*)variable_data;
@@ -21,7 +21,7 @@ size_t ExecuteCount(uint8_t* const_data, uint8_t* variable_data, char* out_str, 
     return print_size;
 }
 
-size_t ExecuteNoData(uint8_t* const_data, uint8_t* variable_data, char* out_str, size_t str_length)
+size_t ProcessNoData(uint8_t const* const_data, uint8_t* variable_data, char* out_str, size_t str_length)
 {
     (void)const_data;    // Unused
     (void)variable_data; // Unused

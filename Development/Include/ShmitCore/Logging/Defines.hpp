@@ -10,6 +10,8 @@ namespace log
 namespace detail
 {
 
+// Constant c-style strings that are returned by the converter functions below
+
 constexpr char const* typeDataStr        = "DATA";
 constexpr char const* typeDiagnosticsStr = "DIAG";
 constexpr char const* typeEventStr       = "EVENT";
@@ -25,6 +27,7 @@ constexpr char const* unknownValueStr = "UNKNOWN";
 
 } // namespace detail
 
+/// @brief Log type
 enum class Type : uint8_t
 {
     eData        = 0,
@@ -32,6 +35,7 @@ enum class Type : uint8_t
     eEvent       = 2
 };
 
+/// @brief Log level
 enum class Level : uint8_t
 {
     eTrace   = 0,
@@ -42,7 +46,10 @@ enum class Level : uint8_t
     eFatal   = 5
 };
 
-constexpr const char* TypeToString(Type type)
+/// @brief Converts a log::Type to its string representation
+/// @param[in] type Log type
+/// @return Pointer to c-style constant string
+static constexpr const char* TypeToString(Type type)
 {
     if (type == Type::eData)
         return detail::typeDataStr;
@@ -54,7 +61,10 @@ constexpr const char* TypeToString(Type type)
     return detail::unknownValueStr;
 }
 
-constexpr const char* LevelToString(Level level)
+/// @brief Converts a log::Level to its string representation
+/// @param[in] level Log level
+/// @return Pointer to c-style constant string
+static constexpr const char* LevelToString(Level level)
 {
     if (level == Level::eTrace)
         return detail::levelTraceStr;

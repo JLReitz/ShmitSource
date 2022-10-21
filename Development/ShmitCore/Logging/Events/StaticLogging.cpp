@@ -9,7 +9,7 @@ using DefaultLoggerType = shmit::log::VoidLogger;
 
 #else
 
-// The default initialized global logger for OS hosted builds is StdoutLogger
+// The default initialized global logger for OS hosted systems is StdoutLogger
 #include <ShmitCore/Logging/Loggers/StdoutLogger.hpp>
 
 using DefaultLoggerType = shmit::log::StdoutLogger;
@@ -24,18 +24,17 @@ namespace events
 {
 
 static DefaultLoggerType gDefaultLoggerInstance;
-Logger*                  StaticLogging::m_logger(&gDefaultLoggerInstance);
+Logger&                  StaticLogging::m_logger = gDefaultLoggerInstance;
 
 void StaticLogging::LoadLogger(Logger& logger) // Static method
 {
-    m_logger = &logger;
+    m_logger = logger;
 }
 
 void StaticLogging::LogEntry(Level level, char const* id, char const* context, char const* event_str) // Static method
 {
     // Pass to member logger
-    if (m_logger)
-        m_logger->LogEntry(Type::eEvent, level, id, context, event_str);
+    m_logger.LogEntry(Type::eEvent, level, id, context, event_str);
 }
 
 } // namespace events

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LoggerInterface.hpp"
+#include "Logger.hpp"
 
 namespace shmit
 {

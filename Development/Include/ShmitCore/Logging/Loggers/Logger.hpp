@@ -15,7 +15,7 @@ public:
     /// @param[in] filter Log entries below this level will not be published (default 'eTrace')
     Logger(Level filter = Level::eTrace);
 
-    /// @brief Prepares a log entry and, if the level passes the filter, publishes it
+    /// Prepares a log entry and, if the level passes the filter, publishes it
     /// @param[in] type Log type
     /// @param[in] level Log level
     /// @param[in] id Log ID
