@@ -46,7 +46,7 @@ enum class Level : uint8_t
     eFatal   = 5
 };
 
-/// @brief Converts a log::Type to its string representation
+/// @brief Converts a log type to its string representation
 /// @param[in] type Log type
 /// @return Pointer to c-style constant string
 static constexpr const char* TypeToString(Type type)
@@ -61,7 +61,7 @@ static constexpr const char* TypeToString(Type type)
     return detail::unknownValueStr;
 }
 
-/// @brief Converts a log::Level to its string representation
+/// @brief Converts a log level to its string representation
 /// @param[in] level Log level
 /// @return Pointer to c-style constant string
 static constexpr const char* LevelToString(Level level)
