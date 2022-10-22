@@ -43,8 +43,10 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Method definitions in alphabetical order    ////////////////////////////////////////////////////////////////////////
+//  StaticLogging method definitions in alphabetical order      ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//  Public  ============================================================================================================
 
 template<typename... ARGV>
 void StaticLogging::Log(Level level, char const* id, char const* context, char const* msg_format, ARGV... args)
@@ -55,7 +57,7 @@ void StaticLogging::Log(Level level, char const* id, char const* context, char c
     size_t msg_length = std::snprintf(NULL, 0, msg_format, args...) + 1;
 
     // Place in some kind of buffer
-    char* event_str = new char[msg_length];
+    char* event_str = new char[msg_length] {};
     std::snprintf(event_str, msg_length, msg_format, args...);
 
     LogEntry(level, id, context, event_str);

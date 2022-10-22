@@ -17,7 +17,7 @@ size_t ProcessCount(uint8_t const* const_data, uint8_t* variable_data, char* out
     CountVariableData* data = (CountVariableData*)variable_data;
     data->count++;
 
-    size_t print_size = snprintf(out_str, str_length, ",Count: %lu", data->count);
+    size_t print_size = snprintf(out_str, str_length, "Count: %lu", data->count);
     return print_size;
 }
 

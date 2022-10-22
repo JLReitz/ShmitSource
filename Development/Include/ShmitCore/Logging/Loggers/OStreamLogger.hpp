@@ -16,24 +16,26 @@ template<class OStreamType>
 class OStreamLogger : public Logger
 {
 public:
-    /// @brief Default constructor. The OStreamLogger remains uninitialized and will not publish any entries until
-    /// 'Load()' is called.
-    /// @param[in] filter Log entries below this level will not be published (default 'eTrace')
-    OStreamLogger(Level filter = Level::eTrace);
+    /*******************************************************************************************************************
+     * Default constructor implicitly defined
+     * ---------------------------------------
+     * Will initialize OStreamLogger in an "unloaded state" where it will not be able to publish any entries until
+     * 'Load()' is called.
+     *******************************************************************************************************************/
 
-    /// @brief Constructs and initializes an OStreamLogger, making it available to publish entries
-    /// @param[in] oStream Reference to output stream instance
+    /// @brief Constructor overload. Initializes OStreamLogger in a "loaded" state.
+    /// @param[in] ostream Output stream
     /// @param[in] filter Log entries below this level will not be published
-    OStreamLogger(OStreamType& oStream, Level filter = Level::eTrace);
+    OStreamLogger(OStreamType& ostream, Level filter);
 
     /// @brief Loads an output stream in to the logger, making it available to publish entries. If the logger was
-    /// previously initialized with a different output stream, that reference will be overwritten by the new one.
-    /// @param[in] oStream Reference to output stream instance
-    virtual void Load(OStreamType& oStream);
+    /// previously loaded with a different output stream, that reference will be replaced by the new one.
+    /// @param[in] ostream Reference to output stream instance
+    virtual void Load(OStreamType& ostream);
 
 protected:
-    OStreamType* mOStream;
-    std::mutex   mOStreamMutex;
+    OStreamType* m_ostream {nullptr}; //!< Pointer to output stream instance (default = 'nullptr')
+    std::mutex   m_ostream_mutex;     //!< Controls access to output stream
 
 private:
     /// Publishes an entry
@@ -51,21 +53,16 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class OStreamType>
-OStreamLogger<OStreamType>::OStreamLogger(Level filter) : mOStream(nullptr), Logger(filter)
-{
-}
-
-template<class OStreamType>
-OStreamLogger<OStreamType>::OStreamLogger(OStreamType& oStream, Level filter) : mOStream(&oStream), Logger(filter)
+OStreamLogger<OStreamType>::OStreamLogger(OStreamType& ostream, Level filter) : m_ostream(&ostream), Logger(filter)
 {
 }
 
 //  Public  ===========================================================================================================
 
 template<class OStreamType>
-void OStreamLogger<OStreamType>::Load(OStreamType& oStream)
+void OStreamLogger<OStreamType>::Load(OStreamType& ostream)
 {
-    mOStream = &oStream;
+    m_ostream = &ostream;
 }
 
 //  Private ============================================================================================================
@@ -74,22 +71,22 @@ template<class OStreamType>
 void OStreamLogger<OStreamType>::PublishEntry(char const* type, char const* level, char const* id, char const* context,
                                               char const* msg)
 {
-    if (mOStream)
+    if (m_ostream)
     {
-        std::lock_guard<std::mutex> scopeLock(mOStreamMutex);
+        std::lock_guard<std::mutex> scoped_lock(m_ostream_mutex);
 
         // Insert elements separately, the *hope* (it is very, very likely) is that the compiler will put them in the
         // correct order
-        *mOStream << type;
-        *mOStream << ',';
-        *mOStream << level;
-        *mOStream << ',';
-        *mOStream << id;
-        *mOStream << ',';
-        *mOStream << context;
-        *mOStream << ',';
-        *mOStream << msg;
-        *mOStream << "\n";
+        *m_ostream << type;
+        *m_ostream << ',';
+        *m_ostream << level;
+        *m_ostream << ',';
+        *m_ostream << id;
+        *m_ostream << ',';
+        *m_ostream << context;
+        *m_ostream << ',';
+        *m_ostream << msg;
+        *m_ostream << "\n";
     }
 }
 

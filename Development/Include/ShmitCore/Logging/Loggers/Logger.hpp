@@ -11,9 +11,13 @@ namespace log
 class Logger
 {
 public:
-    /// @brief Logger default constructor
-    /// @param[in] filter Log entries below this level will not be published (default 'eTrace')
-    Logger(Level filter = Level::eTrace);
+    /*****************************************
+     * Default constructor implicitly defined
+     *****************************************/
+
+    /// @brief Constructor overload
+    /// @param[in] filter Log entries below this level will not be published
+    Logger(Level filter);
 
     /// Prepares a log entry and, if the level passes the filter, publishes it
     /// @param[in] type Log type
@@ -33,7 +37,7 @@ private:
     virtual void PublishEntry(char const* type, char const* level, char const* id, char const* context,
                               char const* msg) = 0;
 
-    Level m_filter;
+    Level m_filter {Level::eTrace}; //!< Logger level threshold (default = 'eTrace')
 };
 
 } // namespace log

@@ -65,8 +65,10 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Method definitions in alphabetical order    ////////////////////////////////////////////////////////////////////////
+//  StaticLogging method definitions in alphabetical order      ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//  Public  ============================================================================================================
 
 template<typename... ARGV>
 void StaticLogging::Log(Level level, char const* id, char const* context, ARGV... args)
@@ -76,9 +78,10 @@ void StaticLogging::Log(Level level, char const* id, char const* context, ARGV..
     // TODO cache timestamp
 
     StartPrintArgs(data_str, args...);
-
     LogEntry(level, id, context, data_str.str().c_str());
 }
+
+//  Private ============================================================================================================
 
 void StaticLogging::PrintArgs(std::ostream& ostream)
 {

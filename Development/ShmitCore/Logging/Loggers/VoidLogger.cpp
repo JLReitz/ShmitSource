@@ -5,10 +5,6 @@ namespace shmit
 namespace log
 {
 
-VoidLogger::VoidLogger() : Logger()
-{
-}
-
 void VoidLogger::PublishEntry(const char* type, const char* level, const char* id, const char* context, const char* msg)
 {
     // Do nothing

@@ -14,7 +14,7 @@
 ///     int x = 69;
 ///     LOG_TRACE_EVENT("example", "trace-event", "x = %d", x)
 #define LOG_TRACE_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eInfo, id, context, message, __VA_ARGS__);
+    shmit::log::events::StaticLogging::Log(shmit::log::Level::eTrace, id, context, message, __VA_ARGS__);
 
 /// Submits a debug event to the static logging interface
 /// Parameters:
@@ -28,7 +28,7 @@
 ///     int x = 69;
 ///     LOG_DEBUG_EVENT("example", "debug-event", "x = %d", x)
 #define LOG_DEBUG_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eInfo, id, context, message, __VA_ARGS__);
+    shmit::log::events::StaticLogging::Log(shmit::log::Level::eDebug, id, context, message, __VA_ARGS__);
 
 /// Submits an info event to the static logging interface
 /// Parameters:

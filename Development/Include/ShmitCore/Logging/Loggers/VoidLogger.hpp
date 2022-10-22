@@ -10,11 +10,10 @@ namespace log
 /// @brief Logger that publishes to the void
 class VoidLogger : public Logger
 {
-public:
-    /// @brief Default constructor
-    VoidLogger();
+    /*****************************************
+     * Default constructor implicitly defined
+     *****************************************/
 
-private:
     /// @brief Yeets that entry in to the void
     /// @param[in] type Log type
     /// @param[in] level Log level

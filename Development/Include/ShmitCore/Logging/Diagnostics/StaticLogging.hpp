@@ -5,8 +5,8 @@
 #include <ShmitCore/Logging/Loggers/Logger.hpp>
 #include <ShmitCore/Types/Generic/Named.hpp>
 
-#include <string.h>
 #include <cstdio>
+#include <cstring>
 
 namespace shmit
 {
@@ -24,7 +24,8 @@ public:
     /// @param posit Diagnostic posit
     /// @param data Address of the variable database used by the posit's data points
     /// @param context_name Name of the context that owns the Posit
-    /// @param context_ref Address of the context instance logging the posit, nullptr if the context is global
+    /// @param context_ref Address of the context instance logging the posit if it is within a class scope, nullptr if
+    /// the context is namespace-scoped or global
     template<typename T>
     static void Log(Posit const& posit, uint8_t* data, char const* context_name, T const* context_ref);
 
@@ -46,55 +47,50 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Method definitions in alphabetical order    ////////////////////////////////////////////////////////////////////////
+//  StaticLogging method definitions in alphabetical order      ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//  Public  ============================================================================================================
 
 template<typename T>
 void StaticLogging::Log(Posit const& posit, uint8_t* data, char const* context_name,
                         T const* context_ref) // Static method
 {
-    constexpr size_t kDiagnosticStringSize = 100; // TODO determine good length for this
-    char             diagnostic_str[kDiagnosticStringSize];
-
-    size_t diagnostic_str_length = 0;
+    constexpr size_t kDiagnosticStringSize = 256;
+    char             diagnostic_str[kDiagnosticStringSize] {};
+    size_t           diagnostic_str_length = 0;
 
     // TODO cache timestamp
 
-    // Log context name together with reference's name
-    char   context_reference_str[Named::kMaxSize] = {0};
-    size_t context_name_length                    = strnlen(context_name, Named::kMaxSize);
-    (void)strncpy(context_reference_str, context_name, context_name_length);
+    // If the reference type is named, log that name if it is valid, otherwise substitute the address
     if constexpr (IsNamed<T>::value)
     {
-        // If the reference type is named, log that name if it is valid, otherwise substitute the address
         if (context_ref->NameLength() > 0)
-            (void)snprintf(&context_reference_str[context_name_length], Named::kMaxSize, "-%s", context_ref->GetName());
+            diagnostic_str_length += snprintf(diagnostic_str, Named::kMaxSize, "%s", context_ref->GetName());
         else
-        {
-            (void)snprintf(&context_reference_str[context_name_length], Named::kMaxSize, "-%p", (void*)context_ref);
-        }
+            diagnostic_str_length += snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
     }
+    // Else, substitute the name for the address
     else
-    {
-        // Else, substitute the name for the address
-        (void)snprintf(&context_reference_str[context_name_length], Named::kMaxSize, "-%p", (void*)context_ref);
-    }
+        diagnostic_str_length += snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
 
-    // Run through data points for the posit, executing their functions and appending their results to 'diagnostic_str'
+    // Iterate through data points for the posit, executing their processing function and appending their results to
+    // 'diagnostic_str'
     size_t           variable_data_index = 0;
     size_t           num_data_points     = posit.DataPointCount();
     DataPoint const* data_points         = posit.DataPoints();
     for (size_t i = 0; i < num_data_points; i++)
     {
-        // Functions return the amount of data written to the diagnostic string
-        DataPoint const& data_point = data_points[i];
+        DataPoint const& data_point             = data_points[i];
+        diagnostic_str[diagnostic_str_length++] = ','; // Prefix comma before DataPoint writes its output
         diagnostic_str_length += (*data_point.function)(data_point.const_data, (data + variable_data_index),
                                                         &diagnostic_str[diagnostic_str_length],
                                                         (kDiagnosticStringSize - diagnostic_str_length));
         variable_data_index += data_point.variable_data_size;
     }
 
-    LogEntry(posit.GetLevel(), posit.GetTag(), context_reference_str, diagnostic_str);
+    // Log the entry
+    LogEntry(posit.GetLevel(), posit.GetTag(), context_name, diagnostic_str);
 }
 
 } // namespace diagnostics
