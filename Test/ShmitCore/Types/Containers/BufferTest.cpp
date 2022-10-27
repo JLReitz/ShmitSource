@@ -1,6 +1,5 @@
 #include <Fixtures/Containers/SequenceContainerTest.hpp>
 
-#include <ShmitCore/Logging/Loggers/StdoutLogger.hpp>
 #include <ShmitCore/Types/Containers/Buffer.hpp>
 
 int gIncrementingGetIntValue = 69; // Value increments every time GetPushValue() or GetInsertValue() is called

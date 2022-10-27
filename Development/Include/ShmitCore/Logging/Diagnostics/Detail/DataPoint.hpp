@@ -1,8 +1,10 @@
 #pragma once
 
-#include <ShmitCore/StdIncludes.hpp>
-
 #include <initializer_list>
+
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 
 namespace shmit
 {
@@ -25,12 +27,17 @@ struct DataPoint
     DataPointProcess function; //!< Processing function
 
     uint8_t const* const_data;         //!< Start of const database
-    size_t         variable_data_size; //!< Size of variable data in variable database
+    size_t         variable_data_size; //!< Size of data in variable database
 };
+
+using Interaction = std::function<size_t(char* out_str, size_t str_length)>;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  Detail      ////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace detail
 {
-
 /// @brief Used by a Posit to initialize a DataPoint
 struct DataPointInit
 {
@@ -39,6 +46,10 @@ struct DataPointInit
     size_t                         variable_data_size; //!< Size of variable data in variable database
     std::initializer_list<uint8_t> const_data;         //!< Const data used by 'function'
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  Functions ////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// @brief Counts the DataPoints provided in a set
 /// @param data_points DataPoint set
@@ -50,7 +61,7 @@ constexpr size_t CountDataPoints(std::initializer_list<DataPointInit> data_point
 
 /// @brief Calculates the required const database size for a given set of DataPoints
 /// @param data_points DataPoint set
-/// @return Size of const database
+/// @return Size of const database in bytes
 constexpr size_t ConstDatabaseSize(std::initializer_list<DataPointInit> data_points)
 {
     size_t size = 0;
@@ -64,7 +75,7 @@ constexpr size_t ConstDatabaseSize(std::initializer_list<DataPointInit> data_poi
 
 /// @brief Calculates the required variable database size for a given set of DataPoints
 /// @param data_points DataPoint set
-/// @return Size of variable database
+/// @return Size of variable database in bytes
 constexpr size_t VariableDatabaseSize(std::initializer_list<DataPointInit> data_points)
 {
     size_t size = 0;

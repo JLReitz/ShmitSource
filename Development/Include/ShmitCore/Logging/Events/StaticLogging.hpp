@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/Logging/Loggers/Logger.hpp>
+#include <ShmitCore/Logging/Logger.hpp>
 
 #include <cstdio>
 
@@ -28,6 +28,10 @@ public:
     /// @brief Loads a logger instance in to the static interface. This replaces the previously loaded Logger.
     /// @param logger Logger instance
     static void LoadLogger(Logger& logger);
+
+    /// @brief Configures the level threshold for the static interface
+    /// @param level Log entries below this level will not be published
+    static void SetThreshold(Level level);
 
 private:
     /// @brief Forwards compiled entry fields to the currently loaded Logger

@@ -2,7 +2,6 @@
 
 #include "Logger.hpp"
 
-#include <cstring>
 #include <mutex>
 
 namespace shmit
@@ -57,7 +56,7 @@ OStreamLogger<OStreamType>::OStreamLogger(OStreamType& ostream, Level filter) : 
 {
 }
 
-//  Public  ===========================================================================================================
+//  Public  ============================================================================================================
 
 template<class OStreamType>
 void OStreamLogger<OStreamType>::Load(OStreamType& ostream)
@@ -65,7 +64,8 @@ void OStreamLogger<OStreamType>::Load(OStreamType& ostream)
     m_ostream = &ostream;
 }
 
-//  Private ============================================================================================================
+//  Private
+//  =============================================================================================================
 
 template<class OStreamType>
 void OStreamLogger<OStreamType>::PublishEntry(char const* type, char const* level, char const* id, char const* context,

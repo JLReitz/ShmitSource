@@ -9,8 +9,6 @@
 #include <iterator>
 #include <type_traits>
 
-#define LOG(line) std::cout << line << std::endl;
-
 namespace shmit
 {
 
@@ -21,11 +19,25 @@ class Buffer : public impl::BufferBase, Named
 
 public:
     DIAGNOSTIC_CONTEXT(shmit::Buffer)
-    DIAGNOSTIC_POSIT(Constructing, shmit::log::Level::eDebug, shmit::log::diagnostics::NoData())
-    DIAGNOSTIC_POSIT(Destructing, shmit::log::Level::eDebug, shmit::log::diagnostics::NoData())
-    DIAGNOSTIC_POSIT(Emplace_Back, shmit::log::Level::eDebug, shmit::log::diagnostics::Count())
-    DIAGNOSTIC_POSIT(Emplace_Front, shmit::log::Level::eDebug, shmit::log::diagnostics::Count())
-    DIAGNOSTIC_POSIT(Emplace_Random, shmit::log::Level::eDebug, shmit::log::diagnostics::Count())
+    DIAGNOSTIC_POSIT(constructing, shmit::log::Level::eDebug)
+    DIAGNOSTIC_POSIT(destructing, shmit::log::Level::eDebug)
+
+    DIAGNOSTIC_DATA_POSIT(at_capacity, shmit::log::Level::eDebug, shmit::log::diagnostics::Times())
+
+    DIAGNOSTIC_DATA_POSIT(insert_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(insert_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(insert_random, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+
+    DIAGNOSTIC_DATA_POSIT(emplace_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(emplace_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(emplace_random, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+
+    DIAGNOSTIC_DATA_POSIT(pop_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(pop_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+
+    DIAGNOSTIC_DATA_POSIT(front_overflow, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(back_overflow, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(overfill, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
 
     using value_type      = typename alloc_traits::value_type;
     using pointer         = typename alloc_traits::pointer;
@@ -191,14 +203,14 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(char const* name, const Allocator& allocator) noexcept
     : BufferBase(), Named(name), mAllocator(allocator)
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 }
 
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(size_t bufferSize, char const* name, const Allocator& allocator)
     : BufferBase(), Named(name), mAllocator(allocator)
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 
     // Only continue if the given buffer size is > 0
     if (bufferSize > 0)
@@ -214,7 +226,7 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(size_t bufferSize, const T& init, char const* name, const Allocator& allocator)
     : BufferBase(), Named(name), mAllocator(allocator)
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 
     // Only continue if the given buffer size is > 0
     if (bufferSize > 0)
@@ -239,7 +251,7 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, char const* name, const Allocator& allocator)
     : BufferBase(), Named(name), mAllocator(allocator)
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 
     // Only continue if the initializer list contains some data
     size_t listSize = il.size();
@@ -261,7 +273,7 @@ template<typename IteratorTypeArg, typename>
 Buffer<T, Allocator>::Buffer(IteratorTypeArg i, IteratorTypeArg j, char const* name, const Allocator& allocator)
     : BufferBase(), Named(name), mAllocator(allocator)
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 
     size_t rangeSize = j - i;
     if (rangeSize > 0)
@@ -281,7 +293,7 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(const Buffer& rhs)
     : BufferBase(), mAllocator(alloc_traits::select_on_container_copy_construction(rhs.mAllocator))
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 
     // Only continue if the right hand side buffer is initialized and has max size > 0
     if ((rhs.mStartAddress != nullptr) && (rhs.mBufferMaxSize > 0))
@@ -306,7 +318,7 @@ Buffer<T, Allocator>::Buffer(const Buffer& rhs)
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(Buffer&& rhs) noexcept : BufferBase(), mAllocator(std::move(rhs.mAllocator))
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Constructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 
     // Copy start address and other members from the right hand side to this
     mStartAddress  = rhs.mStartAddress;
@@ -326,7 +338,7 @@ Buffer<T, Allocator>::Buffer(Buffer&& rhs) noexcept : BufferBase(), mAllocator(s
 template<typename T, class Allocator>
 Buffer<T, Allocator>::~Buffer() noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Destructing)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(destructing)
     DeallocateBuffer();
 }
 
@@ -501,7 +513,7 @@ template<typename... Args>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::emplace(typename Buffer<T, Allocator>::iterator position,
                                                                       Args&&... args) noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Emplace_Random)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_random)
 
     PrepareForRandomInsert(position, 1);
     alloc_traits::construct(mAllocator, &(*position), std::forward<Args>(args)...);
@@ -513,7 +525,7 @@ template<typename T, class Allocator>
 template<typename... Args>
 void Buffer<T, Allocator>::emplace_back(Args&&... args) noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Emplace_Back)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_back)
 
     size_t emplaceStep  = (full()) ? 1 : 0;
     size_t emplaceIndex = _M_roll_over_forward(mBackOfBuffer, emplaceStep);
@@ -521,15 +533,14 @@ void Buffer<T, Allocator>::emplace_back(Args&&... args) noexcept
     // Check for overflow
     if (emplaceIndex == mFrontOfBuffer)
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(back_overflow)
+
         // Increment front of buffer forward 1 step to accomodate new data
         mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, 1);
         mIsFullFlag    = false; // Clear full flag since data has been truncated and is not filled back in yet
-        LOG("Overflow detected")
-        LOG("Moving front of buffer -> " << mFrontOfBuffer)
     }
 
     // Emplace element
-    LOG("Starting emplacement")
     iterator emplacePosition(*this, emplaceIndex);
     alloc_traits::construct(mAllocator, &(*emplacePosition), std::forward<Args>(args)...);
 
@@ -539,7 +550,7 @@ void Buffer<T, Allocator>::emplace_back(Args&&... args) noexcept
     {
         mBackOfBuffer = emplaceIndex;
         mIsFullFlag   = true;
-        LOG("Setting full flag")
+        LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
     }
     else
         mBackOfBuffer = newBackOfBuffer;
@@ -549,22 +560,21 @@ template<typename T, class Allocator>
 template<typename... Args>
 void Buffer<T, Allocator>::emplace_front(Args&&... args) noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(Emplace_Front)
+    LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_front)
 
     size_t emplaceIndex = _M_roll_over_backward(mFrontOfBuffer, 1);
 
     // Check for overflow
     if (full())
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(front_overflow)
+
         // Decrement the back of buffer forward 1 step to accomodate new data
         mBackOfBuffer = _M_roll_over_backward(mBackOfBuffer, 1);
         mIsFullFlag   = false; // Clear full flag since data has been truncated and is not filled back in yet
-        LOG("Overflow detected")
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
     }
 
     // Emplace element
-    LOG("Starting emplacement")
     iterator emplacePosition(*this, emplaceIndex);
     alloc_traits::construct(mAllocator, &(*emplacePosition), std::forward<Args>(args)...);
 
@@ -572,8 +582,8 @@ void Buffer<T, Allocator>::emplace_front(Args&&... args) noexcept
     mFrontOfBuffer = emplaceIndex;
     if (_M_roll_over_backward(mFrontOfBuffer, 1) == mBackOfBuffer)
     {
-        LOG("Setting full flag")
         mIsFullFlag = true;
+        LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
     }
 }
 
@@ -711,14 +721,15 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::pop_back() noexcept
 {
-    LOG("Popping back")
+    LOG_MEMBER_DIAGNOSTIC_POSIT(pop_back)
+
     // Check for empty condition
     if (!empty())
     {
         // Move back of buffer backwards 1 step unless full and clear full flag
         if (!full())
             mBackOfBuffer = _M_roll_over_backward(mBackOfBuffer, 1);
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
+
         mIsFullFlag = false;
     }
 }
@@ -726,7 +737,8 @@ void Buffer<T, Allocator>::pop_back() noexcept
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::pop_front() noexcept
 {
-    LOG("Popping front")
+    LOG_MEMBER_DIAGNOSTIC_POSIT(pop_front)
+
     // Check for empty condition
     if (!empty())
     {
@@ -734,14 +746,10 @@ void Buffer<T, Allocator>::pop_front() noexcept
 
         // Move front of buffer fowards 1 step
         mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, 1);
-        LOG("Moving front of buffer -> " << mFrontOfBuffer)
 
         // If the buffer is full, the back of buffer must be advanced to the now vacant position
         if (isFullAtStart)
-        {
             mBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, 1);
-            LOG("Moving back of buffer -> " << mBackOfBuffer)
-        }
 
         // Clear the full flag
         mIsFullFlag = false;
@@ -751,28 +759,24 @@ void Buffer<T, Allocator>::pop_front() noexcept
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_back(const T& value) noexcept
 {
-    LOG("Pushing back")
     FillPushBack(1, value);
 }
 
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_back(T&& value) noexcept
 {
-    LOG("Pushing back")
     FillPushBack(1, std::forward<T>(value));
 }
 
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_front(const T& value) noexcept
 {
-    LOG("Pushing front")
     FillPushFront(1, value);
 }
 
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::push_front(T&& value) noexcept
 {
-    LOG("Pushing front")
     FillPushFront(1, std::forward<T>(value));
 }
 
@@ -957,7 +961,6 @@ void Buffer<T, Allocator>::CopyAssignElement(size_t position, const T& value)
 {
     // Need to typecast 'mStartAddress' from void* before performing pointer arithmetic
     *((T*)mStartAddress + _M_unwrap_index(position)) = value;
-    LOG("Assigned " << *((T*)mStartAddress + _M_unwrap_index(position)) << " to position " << position)
 }
 
 template<typename T, class Allocator>
@@ -990,19 +993,15 @@ template<typename Arg>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<T, Allocator>::iterator position,
                                                                          size_t n, Arg&& value) noexcept
 {
-    // LOG("Inserting " << n << " element[s]")
-    LOG_INFO_EVENT("Buffer", "fill-insert", "Inserting %d elements", n)
+    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_random, shmit::log::diagnostics::Print("Count:%d", n))
 
     if (n >= mBufferMaxSize)
     {
-        LOG_WARNING_EVENT_STRING("Buffer", "fill-insert", "Buffer overfill detected")
+        LOG_MEMBER_DIAGNOSTIC_POSIT(overfill)
 
         // Fill in the entire buffer starting and set the full flag
         size_t mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Back of buffer sits behind front when full
         mIsFullFlag          = true;
-
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
-        LOG("Setting full flag")
 
         // Cap n at the buffer size, anything over will be redundant
         n = mBufferMaxSize;
@@ -1011,7 +1010,6 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
         PrepareForRandomInsert(position, n);
 
     // Fill in the insert zone
-    LOG("Filling insert zone")
     FillInForward(position, n, std::forward<Arg>(value));
 
     return position;
@@ -1021,30 +1019,31 @@ template<typename T, class Allocator>
 template<typename Arg> // T& or T&&
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushBack(size_t n, Arg&& value) noexcept
 {
-    LOG("Inserting " << n << " element[s] back")
+    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_back, shmit::log::diagnostics::Print("Count:%d", n))
 
     // Guard against inserts larger than the buffer
     if (n > mBufferMaxSize)
+    {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(overfill)
         n = mBufferMaxSize;
+    }
 
     size_t insertSteps      = (full()) ? n : n - 1;
     size_t endOfInsertIndex = _M_roll_over_forward(mBackOfBuffer, insertSteps);
-    LOG("Post-insert back of buffer -> " << endOfInsertIndex)
 
     // Check for overflow
     if (_M_wrap_index(endOfInsertIndex) < _M_wrap_index(mBackOfBuffer))
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(back_overflow)
+
         // Increment front of buffer 1 past the end of insert index to accomodate new data
         mFrontOfBuffer = _M_roll_over_forward(endOfInsertIndex, 1);
         mIsFullFlag    = false; // Clear full flag since data has been truncated and is not filled back in yet
-        LOG("Overflow detected")
-        LOG("Moving front of buffer -> " << mFrontOfBuffer)
     }
 
     // Fill the insert zone in reverse.
     // This takes advantage of _M_move_index_backward() which is called by BufferIterator::operator--() and does not
     // care if the iterator's index is past the back of buffer so long as it is not the literal end-iterator.
-    LOG("Starting insert")
     iterator insertZoneEnd(*this, endOfInsertIndex);
     iterator insertZoneStart = FillInReverse(insertZoneEnd, n, std::forward<Arg>(value));
 
@@ -1054,7 +1053,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushBack(size_
     {
         mBackOfBuffer = endOfInsertIndex;
         mIsFullFlag   = true;
-        LOG("Setting full flag")
+        LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
     }
     else
         mBackOfBuffer = newBackOfBuffer;
@@ -1066,32 +1065,33 @@ template<typename T, class Allocator>
 template<typename Arg> // T& or T&&
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushFront(size_t n, Arg&& value) noexcept
 {
-    LOG("Inserting " << n << " element[s] front")
+    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_front, shmit::log::diagnostics::Print("Count:%d", n))
 
     // Guard against inserts larger than the buffer
     if (n > mBufferMaxSize)
+    {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(overfill)
         n = mBufferMaxSize;
+    }
 
     // Establish the start and end of the insert zone
     // End should be before the front of buffer unless it is empty
     // Start is n - 1 steps ahead as the end index counts towards 1 element in the insert
     size_t endOfInsertIndex   = (empty()) ? mFrontOfBuffer : _M_roll_over_backward(mFrontOfBuffer, 1);
     size_t startOfInsertIndex = _M_roll_over_backward(endOfInsertIndex, n - 1);
-    LOG("Inserting from " << startOfInsertIndex << " -> " << endOfInsertIndex)
 
     // Check for overflow
     if (_M_wrap_index(startOfInsertIndex) <= _M_wrap_index(mBackOfBuffer))
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(front_overflow)
+
         // Decrement the back of buffer 1 past the start of insert index to accomodate new data
         mBackOfBuffer = _M_roll_over_backward(startOfInsertIndex, 1);
         mIsFullFlag   = false; // Clear full flag since data has been truncated and is not filled back in yet
-        LOG("Overflow detected")
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
     }
 
     // Fill the insert zone in reverse
     // See comments in _M_insert_fill_front() for an explanation as to why
-    LOG("Starting insert")
     iterator insertZoneEnd(*this, endOfInsertIndex);
     iterator insertZoneStart = FillInReverse(insertZoneEnd, n, std::forward<Arg>(value));
 
@@ -1099,8 +1099,8 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushFront(size
     mFrontOfBuffer = startOfInsertIndex;
     if (_M_roll_over_backward(mFrontOfBuffer, 1) == mBackOfBuffer)
     {
-        LOG("Setting full flag")
         mIsFullFlag = true;
+        LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
     }
 
     return insertZoneStart;
@@ -1117,17 +1117,14 @@ void Buffer<T, Allocator>::FillInForward(typename Buffer<T, Allocator>::iterator
         if (position == end())
             return;
 
-        *position = value;
-        LOG("Assigned " << *position << " to buffer element")
-        position++;
+        *position++ = value;
     }
 }
 
 template<typename T, class Allocator>
 template<typename Arg> // T& or T&&
-typename Buffer<T, Allocator>::iterator
-    Buffer<T, Allocator>::FillInReverse(typename Buffer<T, Allocator>::iterator position, size_t n,
-                                        Arg&& value) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInReverse(
+    typename Buffer<T, Allocator>::iterator position, size_t n, Arg&& value) noexcept
 {
     bool   sentinelReached = false;
     size_t count           = 0;
@@ -1135,7 +1132,6 @@ typename Buffer<T, Allocator>::iterator
     {
         *position = value;
         count++;
-        LOG("Assigned " << *position << " to buffer element")
         if (count < n)
             position--;
         else
@@ -1188,37 +1184,31 @@ void Buffer<T, Allocator>::PrepareForRandomInsert(typename Buffer<T, Allocator>:
 {
     // Cache the index where the last valid element is in the original data contents
     size_t lastValidElementIndex = (mIsFullFlag) ? mBackOfBuffer : _M_roll_over_backward(mBackOfBuffer, 1);
-    LOG("Caching last valid element at " << lastValidElementIndex)
 
     // Update the back of buffer, do not allow overflow
     size_t newBackOfBuffer = _M_roll_over_forward(mBackOfBuffer, n);
-    LOG("New back of buffer -> " << newBackOfBuffer)
     // If the new back of buffer has overflowed the front its wrapped position will be less than the original's
     if (_M_wrap_index(newBackOfBuffer) < _M_wrap_index(mBackOfBuffer))
     {
-        LOG("New back of buffer overflows front")
         newBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Keep back behind front
         mIsFullFlag     = true;                                     // The resultant buffer will be full
-        LOG("New back of buffer -> " << newBackOfBuffer)
+        LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
     }
 
+    // 'm_back_of_buffer' must be updated to allow the following addition to take place
     mBackOfBuffer = newBackOfBuffer;
-    LOG("Back of buffer -> " << mBackOfBuffer)
 
     // 'position' is the first slot of the insert zone, find the last
     iterator insertZoneEnd = position + (n - 1);
     if (insertZoneEnd == end())
     {
-        LOG("End of insert zone overflows front")
+        LOG_MEMBER_DIAGNOSTIC_POSIT(back_overflow)
 
         // If elements to be inserted will overflow the front, we must truncate
         size_t openInsertSlots = insertZoneEnd - position;
         size_t overFlowDiff    = n - openInsertSlots;
-        LOG("Moving front and back forward by " << overFlowDiff)
-        mFrontOfBuffer = _M_roll_over_forward(mFrontOfBuffer, overFlowDiff);
-        mBackOfBuffer  = _M_roll_over_backward(mFrontOfBuffer, 1);
-        LOG("Front of buffer -> " << mFrontOfBuffer)
-        LOG("Back of buffer -> " << mBackOfBuffer)
+        mFrontOfBuffer         = _M_roll_over_forward(mFrontOfBuffer, overFlowDiff);
+        mBackOfBuffer          = _M_roll_over_backward(mFrontOfBuffer, 1);
     }
     else
     {
@@ -1228,18 +1218,14 @@ void Buffer<T, Allocator>::PrepareForRandomInsert(typename Buffer<T, Allocator>:
         iterator source(*this, lastValidElementIndex); // Original back of buffer
 
         // Determine if any of the slots to copy will need to be truncated
-        size_t slotsToCopy = (source - position) + 1;
-        LOG("Slots to copy: " << slotsToCopy)
+        size_t slotsToCopy   = (source - position) + 1;
         size_t openCopySlots = dest - insertZoneEnd;
-        LOG("Open copy slots: " << openCopySlots)
         if (openCopySlots < slotsToCopy)
         {
             size_t backTruncateDiff = slotsToCopy - openCopySlots;
             source -= backTruncateDiff;
-            LOG("Back truncated by " << backTruncateDiff << " slots")
         }
 
-        LOG("Moving old data")
         while (dest > insertZoneEnd)
             *dest-- = *source--;
     }
@@ -1247,15 +1233,17 @@ void Buffer<T, Allocator>::PrepareForRandomInsert(typename Buffer<T, Allocator>:
 
 template<typename T, class Allocator>
 template<typename IteratorTypeArg>
-typename Buffer<T, Allocator>::iterator
-    Buffer<T, Allocator>::RangeInsert(typename Buffer<T, Allocator>::iterator position, IteratorTypeArg i,
-                                      IteratorTypeArg j) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsert(
+    typename Buffer<T, Allocator>::iterator position, IteratorTypeArg i, IteratorTypeArg j) noexcept
 {
     size_t rangeSize = j - i;
-    LOG("Inserting range of size " << rangeSize)
+    
+    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_random, shmit::log::diagnostics::Print("Count:%d", rangeSize))
 
     if (rangeSize >= mBufferMaxSize)
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(overfill)
+
         // Only the first N elements in the range will be inserted, where N is the buffer max size
         // Decrease the range from the back by the difference
         size_t diff = rangeSize - mBufferMaxSize;
@@ -1265,16 +1253,12 @@ typename Buffer<T, Allocator>::iterator
         // Fill in the entire buffer and set the full flag
         size_t mBackOfBuffer = _M_roll_over_backward(mFrontOfBuffer, 1); // Back of buffer sits behind front when full
         mIsFullFlag          = true;
-
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
-        LOG("Setting full flag")
     }
     else
         PrepareForRandomInsert(position, rangeSize);
 
     // Since IteratorTypeArg is only guaranteed to be at least a `LegacyInputIterator`, we cannot iterate in
     // reverse over the range. We must instead increment through, one at a time, from i to j exclusively.
-    LOG("Starting insert")
     iterator curr = position;
     while (i < j)
         *curr++ = *i++;
@@ -1288,10 +1272,13 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushBack(Iter
                                                                             IteratorTypeArg j) noexcept
 {
     size_t rangeSize = j - i;
-    LOG("Inserting range of size " << rangeSize << " back")
+
+    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_back, shmit::log::diagnostics::Print("Count:%d", rangeSize))
 
     if (rangeSize >= mBufferMaxSize)
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(overfill)
+
         // Only the first N elements in the range will be inserted, where N is the buffer max size
         // Decrease the range from the back by the difference
         size_t diff = rangeSize - mBufferMaxSize;
@@ -1301,21 +1288,19 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushBack(Iter
 
     size_t insertSteps      = (full()) ? rangeSize : rangeSize - 1;
     size_t endOfInsertIndex = _M_roll_over_forward(mBackOfBuffer, insertSteps);
-    LOG("Post-insert back of buffer -> " << endOfInsertIndex)
 
     // Check for overflow
     if (_M_wrap_index(endOfInsertIndex) < _M_wrap_index(mBackOfBuffer))
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(back_overflow)
+
         // Increment front of buffer 1 past the end of insert index to accomodate new data
         mFrontOfBuffer = _M_roll_over_forward(endOfInsertIndex, 1);
         mIsFullFlag    = false; // Clear full flag since data has been truncated and is not filled back in yet
-        LOG("Overflow detected")
-        LOG("Moving front of buffer -> " << mFrontOfBuffer)
     }
 
     // Since IteratorTypeArg is only guaranteed to be at least a `LegacyInputIterator`, we cannot iterate in
     // reverse over the range. We must instead increment through, one at a time, from i to j exclusively.
-    LOG("Starting insert")
     size_t startOfInsertIndex = (full()) ? _M_roll_over_forward(mBackOfBuffer, 1) : mBackOfBuffer;
     size_t currentInsertIndex = startOfInsertIndex;
     while (i < j)
@@ -1327,7 +1312,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushBack(Iter
     {
         mBackOfBuffer = endOfInsertIndex;
         mIsFullFlag   = true;
-        LOG("Setting full flag")
+        LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
     }
     else
         mBackOfBuffer = newBackOfBuffer;
@@ -1341,10 +1326,13 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushFront(Ite
                                                                              IteratorTypeArg j) noexcept
 {
     size_t rangeSize = j - i;
-    LOG("Inserting range of size " << rangeSize << " back")
+
+    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_front, shmit::log::diagnostics::Print("Count:%d", rangeSize))
 
     if (rangeSize >= mBufferMaxSize)
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(overfill)
+
         // Only the first N elements in the range will be inserted, where N is the buffer max size
         // Decrease the range from the back by the difference
         size_t diff = rangeSize - mBufferMaxSize;
@@ -1354,21 +1342,19 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushFront(Ite
 
     size_t endOfInsertIndex   = (empty()) ? mFrontOfBuffer : _M_roll_over_backward(mFrontOfBuffer, 1);
     size_t startOfInsertIndex = _M_roll_over_backward(endOfInsertIndex, rangeSize - 1);
-    LOG("Post-insert front of buffer -> " << startOfInsertIndex)
 
     // Check for overflow
     if (_M_wrap_index(startOfInsertIndex) <= _M_wrap_index(mBackOfBuffer))
     {
+        LOG_MEMBER_DIAGNOSTIC_POSIT(front_overflow)
+
         // Decrement the back of buffer 1 past the start of insert index to accomodate new data
         mBackOfBuffer = _M_roll_over_backward(startOfInsertIndex, 1);
         mIsFullFlag   = false; // Clear full flag since data has been truncated and is not filled back in yet
-        LOG("Overflow detected")
-        LOG("Moving back of buffer -> " << mBackOfBuffer)
     }
 
     // Since IteratorTypeArg is only guaranteed to be at least a `LegacyInputIterator`, we cannot iterate in
     // reverse over the range. We must instead increment through, one at a time, from i to j exclusively.
-    LOG("Starting insert")
     size_t currentInsertIndex = startOfInsertIndex;
     while (i < j)
         CopyAssignElement(currentInsertIndex++, *i++);
@@ -1377,8 +1363,8 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushFront(Ite
     mFrontOfBuffer = startOfInsertIndex;
     if (_M_roll_over_backward(mFrontOfBuffer, 1) == mBackOfBuffer)
     {
-        LOG("Setting full flag")
         mIsFullFlag = true;
+        LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
     }
 
     return iterator(*this, startOfInsertIndex);

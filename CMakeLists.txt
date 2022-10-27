@@ -17,6 +17,7 @@ add_compile_options(
   # -Wextra
   # -Wconversion
   # -Wsign-conversion
+  -g3
   -Og
   -DGTEST_HAS_TYPED_TEST_P
 )
