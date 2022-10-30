@@ -19,24 +19,14 @@ namespace diagnostics
 class StaticLogging
 {
 public:
-    /// @brief Public entry point for logging a diagnostic posit to the system
+    /// @brief Public entry point for logging a diagnostic Posit to the system
     /// @tparam T Context type that owns the posit, void if the context is global
-    /// @param posit Diagnostic posit
-    /// @param data Address of the variable database used by the posit's data points
-    /// @param context_name Name of the context that owns the Posit
-    /// @param context_ref Address of the context instance logging the posit if it is within a class scope, nullptr if
-    /// the context is namespace-scoped or global
-    template<typename T>
-    static void Log(Posit const& posit, uint8_t* data, char const* context_name, T const* context_ref);
-
-    /// @brief
-    /// @tparam T
-    /// @tparam ...Processes
-    /// @param posit
-    /// @param data
-    /// @param context_name
-    /// @param context_ref
-    /// @param ...interactives
+    /// @param[in] posit Diagnostic posit
+    /// @param[in] data Address of the variable database used by the posit's data points
+    /// @param[in] context_name Name of the context that owns the Posit
+    /// @param[in] context_ref Address of the context instance logging the posit if it is within a class scope, nullptr
+    /// if the context is namespace-scoped or global
+    /// @param[in] interactions List of interactions to perform with the Posit
     template<typename T>
     static void Log(Posit const& posit, uint8_t* data, char const* context_name, T const* context_ref,
                     std::initializer_list<Interaction> interactions);
@@ -69,49 +59,8 @@ private:
 //  Public  ============================================================================================================
 
 template<typename T>
-void StaticLogging::Log(Posit const& posit, uint8_t* data, char const* context_name, T const* context_ref) // Static
-                                                                                                           // method
-{
-    constexpr size_t kDiagnosticStringSize = 256;
-    char             diagnostic_str[kDiagnosticStringSize] {};
-    size_t           diagnostic_str_length = 0;
-
-    // TODO cache timestamp
-
-    // If the reference type is named, log that name if it is valid, otherwise substitute the address
-    if constexpr (IsNamed<T>::value)
-    {
-        if (context_ref->NameLength() > 0)
-            diagnostic_str_length += std::snprintf(diagnostic_str, Named::kMaxSize, "%s", context_ref->GetName());
-        else
-            diagnostic_str_length += std::snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
-    }
-    // Else, substitute the name for the address
-    else
-        diagnostic_str_length += std::snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
-
-    // Iterate through data points for the posit, executing their processing function and appending their results to
-    // 'diagnostic_str'
-    size_t           variable_data_index = 0;
-    size_t           num_data_points     = posit.DataPointCount();
-    DataPoint const* data_points         = posit.DataPoints();
-    for (size_t i = 0; i < num_data_points; i++)
-    {
-        DataPoint const& data_point             = data_points[i];
-        diagnostic_str[diagnostic_str_length++] = ','; // Prefix comma before DataPoint writes its output
-        diagnostic_str_length += (*data_point.function)(data_point.const_data, (data + variable_data_index),
-                                                        &diagnostic_str[diagnostic_str_length],
-                                                        (kDiagnosticStringSize - diagnostic_str_length));
-        variable_data_index += data_point.variable_data_size;
-    }
-
-    // Log the entry
-    LogEntry(posit.GetLevel(), posit.GetTag(), context_name, diagnostic_str);
-}
-
-template<typename T>
 void StaticLogging::Log(Posit const& posit, uint8_t* data, char const* context_name, T const* context_ref,
-                        std::initializer_list<Interaction> interactions)
+                        std::initializer_list<Interaction> interactions) // Static method
 {
     constexpr size_t kDiagnosticStringSize = 256;
     char             diagnostic_str[kDiagnosticStringSize] {};
