@@ -105,13 +105,13 @@ protected:
             // Create copy of value to push to both containers
             ElementType emplaceValue2 = emplaceValue;
 
-            mTruthCheck.insert(truthCheckPos, std::move(emplaceValue));
-            container.insert(containerPos, std::move(emplaceValue2));
+            mTruthCheck.emplace(truthCheckPos, std::move(emplaceValue));
+            container.emplace(containerPos, std::move(emplaceValue2));
         }
         else
         {
-            mTruthCheck.insert(truthCheckPos, emplaceValue);
-            container.insert(containerPos, emplaceValue);
+            mTruthCheck.emplace(truthCheckPos, emplaceValue);
+            container.emplace(containerPos, emplaceValue);
         }
     }
 
@@ -222,8 +222,13 @@ protected:
     {
         // Test container should match the truth check sequence
         EXPECT_EQ(container.size(), mTruthCheck.size());
-        for (size_t i = 0; (i < container.size()) && (i < mTruthCheck.size()); i++)
-            EXPECT_EQ(container[i], mTruthCheck[i]);
+
+        size_t count = 0;
+        for (typename ContainerType::value_type const& value : container)
+        {
+            ASSERT_LT(count, mTruthCheck.size());
+            EXPECT_EQ(value, mTruthCheck[count++]);
+        }
     }
 
     TruthCheckType mTruthCheck;
@@ -262,7 +267,7 @@ TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
     }
 
     // Test range constructor
-    typename TestFixture::ContainerType testContainer2(testContainer.begin(), testContainer.end());
+    typename TestFixture::ContainerType testContainer2(il.begin(), il.end());
 
     EXPECT_EQ(testContainer2.size(), il.size());
 

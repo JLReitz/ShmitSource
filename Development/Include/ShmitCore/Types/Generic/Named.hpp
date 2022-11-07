@@ -12,7 +12,7 @@ class Named
 public:
     static constexpr size_t kMaxSize = 16;
 
-    Named();
+    Named() = default;
     Named(char const* name);
 
     char const* GetName() const;
@@ -21,8 +21,8 @@ public:
     size_t NameLength() const;
 
 private:
-    size_t m_name_length;
-    char   m_name[kMaxSize + 1]; // +1 for null termination
+    size_t m_name_length {0};
+    char   m_name[kMaxSize + 1] {0}; // +1 size for null termination
 };
 
 template<typename T>

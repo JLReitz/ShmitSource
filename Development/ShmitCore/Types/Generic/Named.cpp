@@ -3,11 +3,7 @@
 namespace shmit
 {
 
-Named::Named() : m_name_length(0), m_name {0}
-{
-}
-
-Named::Named(char const* name) : m_name_length(0), m_name {0}
+Named::Named(char const* name) : m_name_length {0}, m_name {0}
 {
     SetName(name);
 }

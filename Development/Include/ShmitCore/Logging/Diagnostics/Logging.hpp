@@ -38,7 +38,7 @@
 #define DIAGNOSTIC_POSIT(tag, level) \
     static constexpr shmit::log::diagnostics::detail::Posit<0, 0> _posit_##tag = \
         shmit::log::diagnostics::detail::MakePosit<0, 0>(#tag, level, {}); \
-    std::array<uint8_t, 0> _posit_##tag##_variable_data {};
+    mutable std::array<uint8_t, 0> _posit_##tag##_variable_data {};
 
 /// Declares a Posit with listed DataPoints and complimentary variable database within the current diagnostic context.
 /// Parameters:
@@ -76,7 +76,7 @@
         _posit_##tag = \
             shmit::log::diagnostics::detail::MakePosit<kPosit_##tag##_NumDataPoints, kPosit_##tag##_ConstDataSize>( \
                 #tag, level, {__VA_ARGS__}); \
-    std::array<uint8_t, kPosit_##tag##_VariableDataSize> _posit_##tag##_variable_data {};
+    mutable std::array<uint8_t, kPosit_##tag##_VariableDataSize> _posit_##tag##_variable_data {};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Standard Posit Logging        //////////////////////////////////////////////////////////////////////////////////////
