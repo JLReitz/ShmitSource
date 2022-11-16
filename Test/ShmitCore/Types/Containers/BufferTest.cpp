@@ -4,8 +4,12 @@
 
 int gIncrementingGetIntValue = 69; // Value increments every time GetPushValue() or GetInsertValue() is called
 
-/**
- * @brief Test module for shmit::Buffer<int>. Fulfils the named reqiurements of template `SequenceContainerTestModule`
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Buffer specialization test modules       ////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**!
+ * @brief shmit::Buffer<Int> specialization test module. Fulfils the named reqiurements of `SequenceContainerTestModule`
  * for fixture 'SequenceContainerTest`.
  */
 class IntSpecialization
@@ -53,6 +57,8 @@ private:
     static constexpr std::initializer_list<int> mIl = {1, 2, 3, 4, 5}; // Buffer test initializer list
 };
 
-// Implement type-parameterized STL container test fixtures relevant to shmit::Buffer with the specialized test module
-// above
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Instantiate typed-test suite with each specialized test-module implementation        ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 INSTANTIATE_TYPED_TEST_SUITE_P(Buffer, SequenceContainerTest, IntSpecialization);

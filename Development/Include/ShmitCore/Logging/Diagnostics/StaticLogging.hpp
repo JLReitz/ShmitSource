@@ -3,6 +3,7 @@
 #include "Detail/Posit.hpp"
 #include "Interactions.hpp"
 
+#include <ShmitCore/Help/CString.hpp>
 #include <ShmitCore/Logging/Logger.hpp>
 #include <ShmitCore/Types/Generic/Named.hpp>
 
@@ -72,13 +73,13 @@ void StaticLogging::Log(Posit const& posit, uint8_t* data, char const* context_n
     if constexpr (IsNamed<T>::value)
     {
         if (context_ref->NameLength() > 0)
-            diagnostic_str_length += std::snprintf(diagnostic_str, Named::kMaxSize, "%s", context_ref->GetName());
+            diagnostic_str_length += protected_snprintf(diagnostic_str, Named::kMaxSize, "%s", context_ref->GetName());
         else
-            diagnostic_str_length += std::snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
+            diagnostic_str_length += protected_snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
     }
     // Else, substitute the name for the address
     else
-        diagnostic_str_length += std::snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
+        diagnostic_str_length += protected_snprintf(diagnostic_str, Named::kMaxSize, "%p", (void*)context_ref);
 
     // Iterate through interactions, executing them in order and appending their results to 'diagnostic_str'
     for (const Interaction& interaction : interactions)

@@ -1,6 +1,3 @@
-# Declare ShmitCore as the build target
-add_library(ShmitCore "")
-
 # Add ShmitSource includes to target
 set(SHMITCORE_INCLUDE_PATH ${CMAKE_SOURCE_DIR}/Development/Include)
 target_include_directories(ShmitCore PUBLIC ${SHMITCORE_INCLUDE_PATH})
@@ -20,6 +17,7 @@ target_sources(ShmitCore
 # Finally, add source subdirectories
 # These will either add to the 'ShmitCore' target or create their own
 # Using 'include' instead of 'add_subdirectory' to lay out a paradigm, get off my back
+include(Help/CMakeLists.txt)
 include(Logging/CMakeLists.txt)
 include(Platform/CMakeLists.txt)
 include(Types/CMakeLists.txt)

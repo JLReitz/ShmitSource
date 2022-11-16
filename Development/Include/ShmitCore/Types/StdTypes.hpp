@@ -7,15 +7,15 @@
 //  std typdefs        /////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using std::int8_t;
-using std::int16_t;
-using std::int32_t;
-using std::int64_t;
+using int8_t  = std::int_least8_t;
+using int16_t = std::int_least16_t;
+using int32_t = std::int_least32_t;
+using int64_t = std::int_least64_t;
 
-using std::uint8_t;
-using std::uint16_t;
-using std::uint32_t;
-using std::uint64_t;
+using uint8_t  = std::uint_least8_t;
+using uint16_t = std::uint_least16_t;
+using uint32_t = std::uint_least32_t;
+using uint64_t = std::uint_least64_t;
 
 using std::size_t;
 

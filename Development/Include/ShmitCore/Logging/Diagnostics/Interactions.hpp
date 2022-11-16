@@ -2,7 +2,7 @@
 
 #include "Detail/DataPoint.hpp"
 
-#include <cstdio>
+#include <ShmitCore/Help/CString.hpp>
 
 namespace shmit
 {
@@ -30,7 +30,7 @@ template<typename... ARGV>
 Interaction Print(char const* format, ARGV... args)
 {
     return [=](char* out_str, size_t str_length) -> size_t
-    { return std::snprintf(out_str, str_length, format, args...); };
+    { return protected_snprintf(out_str, str_length, format, args...); };
 }
 
 } // namespace diagnostics

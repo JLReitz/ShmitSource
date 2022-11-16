@@ -4,127 +4,31 @@
 #include <ShmitCore/Types/Generic/Named.hpp>
 #include <ShmitCore/Types/StdTypes.hpp>
 
+#include <limits>
+
 namespace shmit
 {
 namespace detail
 {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Buffer iterator base class          ////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Buffer base class       ////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/**!
+ * @brief Base Buffer implementation. Has no knownledge of the value types it contains, it only handles raw memory.
+ *
+ */
 class Buffer : public Named
 {
 public:
-    using difference_type = size_t;
-    using size_type       = size_t;
-
-protected:
-    class BufferIterator
-    {
-    public:
-        DIAGNOSTIC_CONTEXT(BufferIterator)
-
-        DIAGNOSTIC_POSIT(increment, shmit::log::Level::eTrace)
-        DIAGNOSTIC_POSIT(decrement, shmit::log::Level::eTrace)
-
-        using iterator_category = std::random_access_iterator_tag;
-
-        BufferIterator() = delete;
-
-        BufferIterator(BufferIterator const& rhs) noexcept;
-
-        BufferIterator operator++() noexcept;
-        BufferIterator operator++(int) noexcept;
-        BufferIterator operator--() noexcept;
-        BufferIterator operator--(int) noexcept;
-
-        BufferIterator operator+=(difference_type steps) noexcept;
-        BufferIterator operator-=(difference_type steps) noexcept;
-
-        BufferIterator operator=(BufferIterator const& rhs) noexcept;
-
-        bool operator>(BufferIterator const& rhs) const noexcept;
-        bool operator>=(BufferIterator const& rhs) const noexcept;
-        bool operator<(BufferIterator const& rhs) const noexcept;
-        bool operator<=(BufferIterator const& rhs) const noexcept;
-
-        bool operator==(BufferIterator const& rhs) const noexcept;
-        bool operator!=(BufferIterator const& rhs) const noexcept;
-
-        friend Buffer;
-        friend class ConstBufferIterator; // Forward declaration
-
-        template<typename T>
-        friend class BufferIteratorT; // Forward declaration
-
-        friend BufferIterator  operator+(BufferIterator const& lhs, difference_type rhs) noexcept;
-        friend BufferIterator  operator+(const difference_type lhs, BufferIterator const& rhs) noexcept;
-        friend difference_type operator-(BufferIterator const& lhs, BufferIterator const& rhs) noexcept;
-        friend BufferIterator  operator-(BufferIterator const& lhs, const difference_type rhs) noexcept;
-
-    protected:
-        BufferIterator(Buffer& buffer) noexcept;
-        BufferIterator(Buffer& buffer, size_type offset) noexcept;
-
-        size_type m_offset {0};
-        Buffer*   m_buffer; // No default initialization, pointer must always be valid
-    };
-
-    class ConstBufferIterator
-    {
-    public:
-        ConstBufferIterator() = delete;
-
-        ConstBufferIterator(BufferIterator const& rhs) noexcept;
-        ConstBufferIterator(ConstBufferIterator const& rhs) noexcept;
-
-        ConstBufferIterator operator++() noexcept;
-        ConstBufferIterator operator++(int) noexcept;
-        ConstBufferIterator operator--() noexcept;
-        ConstBufferIterator operator--(int) noexcept;
-
-        ConstBufferIterator operator+=(difference_type steps) noexcept;
-        ConstBufferIterator operator-=(difference_type steps) noexcept;
-
-        ConstBufferIterator operator=(ConstBufferIterator const& rhs) noexcept;
-
-        bool operator>(ConstBufferIterator const& rhs) const noexcept;
-        bool operator>=(ConstBufferIterator const& rhs) const noexcept;
-        bool operator<(ConstBufferIterator const& rhs) const noexcept;
-        bool operator<=(ConstBufferIterator const& rhs) const noexcept;
-
-        bool operator==(ConstBufferIterator const& rhs) const noexcept;
-        bool operator!=(ConstBufferIterator const& rhs) const noexcept;
-
-        friend Buffer;
-
-        template<typename T>
-        friend class ConstBufferIteratorT; // Forward declaration
-
-        friend ConstBufferIterator operator+(ConstBufferIterator const& lhs, difference_type rhs) noexcept;
-        friend ConstBufferIterator operator+(const difference_type lhs, ConstBufferIterator const& rhs) noexcept;
-        friend difference_type     operator-(ConstBufferIterator const& lhs, ConstBufferIterator const& rhs) noexcept;
-        friend ConstBufferIterator operator-(ConstBufferIterator const& lhs, const difference_type rhs) noexcept;
-
-    protected:
-        ConstBufferIterator(Buffer const& buffer) noexcept;
-        ConstBufferIterator(Buffer const& buffer, size_type offset) noexcept;
-
-        size_type     m_offset {0};
-        Buffer const* m_buffer;
-    };
-
-public:
-    DIAGNOSTIC_CONTEXT(shmit::Buffer)
-    DIAGNOSTIC_POSIT(constructing, shmit::log::Level::eDebug)
-    DIAGNOSTIC_POSIT(destructing, shmit::log::Level::eDebug)
+    DIAGNOSTIC_CONTEXT(Buffer)
+    DIAGNOSTIC_POSIT(constructing, shmit::log::Level::eTrace)
+    DIAGNOSTIC_POSIT(destructing, shmit::log::Level::eTrace)
 
     DIAGNOSTIC_DATA_POSIT(at_capacity, shmit::log::Level::eDebug, shmit::log::diagnostics::Times())
+
+    DIAGNOSTIC_DATA_POSIT(assign, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
 
     DIAGNOSTIC_DATA_POSIT(insert_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
     DIAGNOSTIC_DATA_POSIT(insert_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
@@ -136,6 +40,9 @@ public:
 
     DIAGNOSTIC_DATA_POSIT(pop_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
     DIAGNOSTIC_DATA_POSIT(pop_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(erase_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(erase_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
+    DIAGNOSTIC_DATA_POSIT(erase_random, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
 
     DIAGNOSTIC_DATA_POSIT(front_overflow, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
     DIAGNOSTIC_DATA_POSIT(back_overflow, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
@@ -144,35 +51,189 @@ public:
     DIAGNOSTIC_DATA_POSIT(bad_alloc, shmit::log::Level::eError, shmit::log::diagnostics::Times())
     DIAGNOSTIC_DATA_POSIT(bad_move, shmit::log::Level::eError, shmit::log::diagnostics::Times())
 
-    DIAGNOSTIC_POSIT(increment_iterator, shmit::log::Level::eTrace)
+    using difference_type = int;
+    using size_type       = size_t;
 
+    static constexpr size_t kMaxAllowableSize = std::numeric_limits<difference_type>::max();
+
+protected:
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //  Iterator base classes ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**!
+     * @brief Base standard iterator implementation. Like its container, it has no knowledge of the value types it
+     * tracks.
+     *
+     */
+    class Iterator
+    {
+    public:
+        DIAGNOSTIC_CONTEXT(Buffer::Iterator)
+        DIAGNOSTIC_POSIT(increment, shmit::log::Level::eTrace)
+        DIAGNOSTIC_POSIT(decrement, shmit::log::Level::eTrace)
+
+        Iterator() = delete;
+        Iterator(Iterator const& rhs) noexcept;
+
+        bool operator>(Iterator const& rhs) const noexcept;
+        bool operator>=(Iterator const& rhs) const noexcept;
+        bool operator<(Iterator const& rhs) const noexcept;
+        bool operator<=(Iterator const& rhs) const noexcept;
+
+        bool operator==(Iterator const& rhs) const noexcept;
+        bool operator!=(Iterator const& rhs) const noexcept;
+
+        friend Buffer;
+        friend class ConstIterator; // Forward declaration
+        template<typename T>
+        friend class BufferIteratorT; // Forward declaration
+
+    protected:
+        Iterator(Buffer& buffer) noexcept;
+        Iterator(Buffer& buffer, size_type offset) noexcept;
+
+        /**!
+         * @brief Increases the Iterator's offset by the provided number of steps, bounded by the current size of its
+         * tracked Buffer.
+         *
+         * @param steps Number of increments
+         */
+        void Increment(size_type steps);
+
+        /**!
+         * @brief Decreases the Iterator's offset by the provided number of steps. When it reaches the front, it will
+         * wrap around to the back.
+         *
+         * @param steps Number of decrements
+         */
+        void Decrement(size_type steps);
+
+        /**!
+         * @brief Copies another Iterator
+         *
+         * @param rhs Iterator to copy
+         */
+        void Copy(Iterator const& rhs);
+
+        size_type m_offset {0}; //!< Relative offset from front of buffer
+        Buffer*   m_buffer;     //!< Pointer to tracked Buffer. No default initialization, must always be valid.
+    };
+
+    /**!
+     * @brief Base constant iterator implementation. The iterator itself is not constant, but the Buffer elements it
+     * tracks are. Raw memory and all as well... yada yada.
+     */
+    class ConstIterator
+    {
+    public:
+        DIAGNOSTIC_CONTEXT(Buffer::ConstIterator)
+        DIAGNOSTIC_POSIT(increment, shmit::log::Level::eTrace)
+        DIAGNOSTIC_POSIT(decrement, shmit::log::Level::eTrace)
+
+        ConstIterator() = delete;
+
+        ConstIterator(Iterator const& rhs) noexcept;
+        ConstIterator(ConstIterator const& rhs) noexcept;
+
+        bool operator>(ConstIterator const& rhs) const noexcept;
+        bool operator>=(ConstIterator const& rhs) const noexcept;
+        bool operator<(ConstIterator const& rhs) const noexcept;
+        bool operator<=(ConstIterator const& rhs) const noexcept;
+
+        bool operator==(ConstIterator const& rhs) const noexcept;
+        bool operator!=(ConstIterator const& rhs) const noexcept;
+
+        friend Buffer;
+
+        template<typename T>
+        friend class ConstBufferIteratorT; // Forward declaration
+
+    protected:
+        ConstIterator(Buffer const& buffer) noexcept;
+        ConstIterator(Buffer const& buffer, size_type offset) noexcept;
+
+        /**!
+         * @brief Increases the ConstIterator's offset by the provided number of steps, bounded by the current size of
+         * its tracked Buffer.
+         *
+         * @param steps Number of increments
+         */
+        void Increment(size_type steps);
+
+        /**!
+         * @brief Decreases the ConstIterator's offset by the provided number of steps. When it reaches the front, it
+         * will wrap around to the back.
+         *
+         * @param steps Number of decrements
+         */
+        void Decrement(size_type steps);
+
+        /**!
+         * @brief Copies another ConstIterator
+         *
+         * @param rhs Iterator to copy
+         */
+        void Copy(Iterator const& rhs);
+
+        size_type     m_offset {0}; //!< Relative offset from front of buffer
+        Buffer const* m_buffer;     //!< Pointer to tracked Buffer. No default initialization, must always be valid.
+    };
+
+public:
     Buffer() = delete;
 
+    /**!
+     * @brief Returns the empty state of the Buffer
+     *
+     * @retval true If the Buffer is empty
+     * @retval false otherwise
+     */
     bool empty() const noexcept;
+
+    /**!
+     * @brief Returns the full state of the Buffer
+     *
+     * @retval true If the Buffer is full
+     * @retval false otherwise
+     */
     bool full() const noexcept;
 
+    /**!
+     * @brief Returns the number of valid elements currently contained by the Buffer
+     *
+     * @return size_type Number of valid elements
+     */
     size_type size() const noexcept;
+
+    /**!
+     * @brief Returns the max number of elements that the Buffer can contain at once
+     *
+     * @return size_type Max number of elements
+     */
     size_type max_size() const noexcept;
 
+    /**!
+     * @brief Empties the buffer, does not destroy the contained elements
+     *
+     */
     void clear() noexcept;
 
+    /**!
+     * @brief Converts an absolute index to a position in reference to the front of the Buffer's current offset
+     *
+     * @param index Absolute index
+     * @return size_type Wrapped position
+     */
+    size_type WrapIndex(size_type index) const;
+
     template<typename T>
-    friend class BufferIteratorT;
+    friend class BufferIteratorT; // Forward declaration
     template<typename T>
-    friend class ConstBufferIteratorT;
+    friend class ConstBufferIteratorT; // Forward declaration
 
-    friend BufferIterator;
-    friend ConstBufferIterator;
-
-    friend BufferIterator  operator+(BufferIterator const& lhs, difference_type rhs) noexcept;
-    friend BufferIterator  operator+(const difference_type lhs, BufferIterator const& rhs) noexcept;
-    friend difference_type operator-(BufferIterator const& lhs, BufferIterator const& rhs) noexcept;
-    friend BufferIterator  operator-(BufferIterator const& lhs, const difference_type rhs) noexcept;
-
-    friend ConstBufferIterator operator+(ConstBufferIterator const& lhs, difference_type rhs) noexcept;
-    friend ConstBufferIterator operator+(const difference_type lhs, ConstBufferIterator const& rhs) noexcept;
-    friend difference_type     operator-(ConstBufferIterator const& lhs, ConstBufferIterator const& rhs) noexcept;
-    friend ConstBufferIterator operator-(ConstBufferIterator const& lhs, const difference_type rhs) noexcept;
+    friend Iterator;
+    friend ConstIterator;
 
 protected:
     Buffer(size_type element_size_bytes) noexcept;
@@ -189,32 +250,36 @@ protected:
                                        index;
     }
 
-    BufferIterator      IncrementBounded(BufferIterator iterator, size_type steps) const;
-    ConstBufferIterator IncrementBounded(ConstBufferIterator iterator, size_type steps) const;
-    BufferIterator      IncrementBoundless(BufferIterator iterator, size_type steps) const;
-    ConstBufferIterator IncrementBoundless(ConstBufferIterator iterator, size_type steps) const;
-    BufferIterator      DecrementBounded(BufferIterator iterator, size_type steps) const;
-    ConstBufferIterator DecrementBounded(ConstBufferIterator iterator, size_type steps) const;
-    BufferIterator      DecrementBoundless(BufferIterator iterator, size_type steps) const;
-    ConstBufferIterator DecrementBoundless(ConstBufferIterator iterator, size_type steps) const;
+    void          IncrementBounded(Iterator& iterator, size_type steps) const;
+    void          IncrementBounded(ConstIterator& iterator, size_type steps) const;
+    Iterator      IncrementBoundless(Iterator iterator, size_type steps) const;
+    ConstIterator IncrementBoundless(ConstIterator iterator, size_type steps) const;
 
-    size_type WrapIndex(size_type index) const;
+    void          DecrementBounded(Iterator& iterator, size_type steps) const;
+    void          DecrementBounded(ConstIterator& iterator, size_type steps) const;
+    Iterator      DecrementBoundless(Iterator iterator, size_type steps) const;
+    ConstIterator DecrementBoundless(ConstIterator iterator, size_type steps) const;
+
     size_type UnwrapPosition(size_type index) const;
 
-    void      AtCapacity() noexcept;
+    void AtCapacity() noexcept;
+    void ClearFullState() noexcept;
+
     size_type OverfillGuard(size_type count) const noexcept;
 
-    void PrepareForRandomPlacement(BufferIterator const& start, size_type n) noexcept;
+    Iterator ShiftContents(Iterator const& src, Iterator const& dest, size_type n);
 
-    void PostInsertFront(BufferIterator insert_start);
-    void PostInsertBack(BufferIterator insert_end);
+    void PrepareForRandomPlacement(Iterator const& start, size_type n) noexcept;
+
+    void PostInsertFront(Iterator insert_start);
+    void PostInsertBack(Iterator insert_end);
 
     void MoveMemoryContents(Buffer&& rhs);
 
     void Swap(Buffer& rhs) noexcept;
 
-    BufferIterator m_front {*this};
-    BufferIterator m_back {*this};
+    Iterator m_front {*this};
+    Iterator m_back {*this};
 
     bool m_is_full {false};
 
@@ -228,72 +293,203 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-class BufferIteratorT : public Buffer::BufferIterator
+class BufferIteratorT : public Buffer::Iterator
 {
 public:
     using difference_type = Buffer::difference_type;
     using size_type       = Buffer::size_type;
 
     using value_type = T;
-    using pointer    = T*;
-    using reference  = T&;
+    using pointer    = value_type*;
+    using reference  = value_type&;
+
+    using iterator_category = std::random_access_iterator_tag;
 
     BufferIteratorT(BufferIteratorT const& rhs) noexcept;
-    BufferIteratorT(Buffer::BufferIterator const& rhs) noexcept;
+    BufferIteratorT(Buffer::Iterator const& rhs) noexcept;
 
     reference operator*() const noexcept;
     pointer   operator->() const noexcept;
+
+    BufferIteratorT operator++() noexcept;
+    BufferIteratorT operator++(int) noexcept;
+    BufferIteratorT operator--() noexcept;
+    BufferIteratorT operator--(int) noexcept;
+
+    BufferIteratorT operator+=(difference_type steps) noexcept;
+    BufferIteratorT operator-=(difference_type steps) noexcept;
+
+    BufferIteratorT operator=(BufferIteratorT const& rhs) noexcept;
+
+    template<typename TArg>
+    friend BufferIteratorT<TArg> operator+(BufferIteratorT<TArg> const& lhs, difference_type rhs) noexcept;
+
+    template<typename TArg>
+    friend BufferIteratorT<TArg> operator+(const difference_type lhs, BufferIteratorT<TArg> const& rhs) noexcept;
+
+    template<typename TArg>
+    friend difference_type operator-(BufferIteratorT<TArg> const& lhs, BufferIteratorT<TArg> const& rhs) noexcept;
+
+    template<typename TArg>
+    friend BufferIteratorT<TArg> operator-(BufferIteratorT<TArg> const& lhs, const difference_type rhs) noexcept;
 };
 
 template<typename T>
-class ConstBufferIteratorT : public Buffer::ConstBufferIterator
+class ConstBufferIteratorT : public Buffer::ConstIterator
 {
 public:
     using difference_type = Buffer::difference_type;
     using size_type       = Buffer::size_type;
 
     using value_type = T const;
-    using pointer    = T const*;
-    using reference  = T const&;
+    using pointer    = value_type*;
+    using reference  = value_type&;
+
+    using iterator_category = std::random_access_iterator_tag;
 
     ConstBufferIteratorT(ConstBufferIteratorT const& rhs) noexcept;
-    ConstBufferIteratorT(Buffer::BufferIterator const& rhs) noexcept;
+    ConstBufferIteratorT(Buffer::Iterator const& rhs) noexcept;
 
     reference operator*() const noexcept;
     pointer   operator->() const noexcept;
+
+    ConstBufferIteratorT operator++() noexcept;
+    ConstBufferIteratorT operator++(int) noexcept;
+    ConstBufferIteratorT operator--() noexcept;
+    ConstBufferIteratorT operator--(int) noexcept;
+
+    ConstBufferIteratorT operator+=(difference_type steps) noexcept;
+    ConstBufferIteratorT operator-=(difference_type steps) noexcept;
+
+    ConstBufferIteratorT operator=(ConstBufferIteratorT const& rhs) noexcept;
+
+    template<typename TArg>
+    friend ConstBufferIteratorT<TArg> operator+(ConstBufferIteratorT<TArg> const& lhs, difference_type rhs) noexcept;
+
+    template<typename TArg>
+    friend ConstBufferIteratorT<TArg> operator+(const difference_type             lhs,
+                                                ConstBufferIteratorT<TArg> const& rhs) noexcept;
+
+    template<typename TArg>
+    friend difference_type operator-(ConstBufferIteratorT<TArg> const& lhs,
+                                     ConstBufferIteratorT<TArg> const& rhs) noexcept;
+
+    template<typename TArg>
+    friend ConstBufferIteratorT<TArg> operator-(ConstBufferIteratorT<TArg> const& lhs,
+                                                const difference_type             rhs) noexcept;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  BufferIteratorT methods in alphabetical order       ////////////////////////////////////////////////////////////////
+//  BufferIteratorT constructor definitions         ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //  Public      ========================================================================================================
 
 template<typename T>
 BufferIteratorT<T>::BufferIteratorT(BufferIteratorT<T> const& rhs) noexcept
-    : Buffer::BufferIterator(*rhs.m_buffer, rhs.m_offset)
+    : Buffer::Iterator(*rhs.m_buffer, rhs.m_offset)
 {
 }
 
 template<typename T>
-BufferIteratorT<T>::BufferIteratorT(Buffer::BufferIterator const& rhs) noexcept : Buffer::BufferIterator(rhs)
+BufferIteratorT<T>::BufferIteratorT(Buffer::Iterator const& rhs) noexcept : Buffer::Iterator(rhs)
 {
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  BufferIteratorT method definitions in alphabetical order        ////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//  Public      ========================================================================================================
 
 template<typename T>
 typename BufferIteratorT<T>::reference BufferIteratorT<T>::operator*() const noexcept
 {
     // Need to typecast buffer start address from void* before performing pointer arithmetic
-    T* buffer_start = static_cast<T*>(m_buffer->m_start_address);
-    return *(buffer_start + m_offset);
+    pointer element_ptr = static_cast<pointer>(m_buffer->m_start_address) + m_offset;
+    return *element_ptr;
 }
 
 template<typename T>
 typename BufferIteratorT<T>::pointer BufferIteratorT<T>::operator->() const noexcept
 {
     // Need to typecast buffer start address from void* before performing pointer arithmetic
-    T* buffer_start = static_cast<T*>(m_buffer->m_start_address);
-    return *(buffer_start + m_offset);
+    pointer element_ptr = static_cast<pointer>(m_buffer->m_start_address) + m_offset;
+    return element_ptr;
+}
+
+template<typename T>
+BufferIteratorT<T> BufferIteratorT<T>::operator++() noexcept
+{
+    Increment(1);
+    return *this;
+}
+
+template<typename T>
+BufferIteratorT<T> BufferIteratorT<T>::operator++(int) noexcept
+{
+    Increment(1);
+    return *this;
+}
+
+template<typename T>
+BufferIteratorT<T> BufferIteratorT<T>::operator--() noexcept
+{
+    Decrement(1);
+    return *this;
+}
+
+template<typename T>
+BufferIteratorT<T> BufferIteratorT<T>::operator--(int) noexcept
+{
+    Decrement(1);
+    return *this;
+}
+
+template<typename T>
+BufferIteratorT<T> BufferIteratorT<T>::operator+=(difference_type steps) noexcept
+{
+    if (steps > 0)
+        Increment((unsigned)steps);
+    else
+        Decrement((unsigned)(steps * -1));
+
+    return *this;
+}
+
+template<typename T>
+BufferIteratorT<T> BufferIteratorT<T>::operator-=(difference_type steps) noexcept
+{
+    if (steps > 0)
+        Decrement((unsigned)steps);
+    else
+        Increment((unsigned)(steps * -1));
+
+    return *this;
+}
+
+template<typename T>
+BufferIteratorT<T> BufferIteratorT<T>::operator=(BufferIteratorT<T> const& rhs) noexcept
+{
+    Copy(rhs);
+    return *this;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  ConstBufferIteratorT constructor definitions        ////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//  Public      ========================================================================================================
+
+template<typename T>
+ConstBufferIteratorT<T>::ConstBufferIteratorT(ConstBufferIteratorT<T> const& rhs) noexcept
+    : Buffer::ConstIterator(*rhs.m_buffer, rhs.m_offset)
+{
+}
+
+template<typename T>
+ConstBufferIteratorT<T>::ConstBufferIteratorT(Buffer::Iterator const& rhs) noexcept : Buffer::ConstIterator(rhs)
+{
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -303,31 +499,149 @@ typename BufferIteratorT<T>::pointer BufferIteratorT<T>::operator->() const noex
 //  Public      ========================================================================================================
 
 template<typename T>
-ConstBufferIteratorT<T>::ConstBufferIteratorT(ConstBufferIteratorT<T> const& rhs) noexcept
-    : Buffer::ConstBufferIterator(*rhs.m_buffer, rhs.m_offset)
-{
-}
-
-template<typename T>
-ConstBufferIteratorT<T>::ConstBufferIteratorT(Buffer::BufferIterator const& rhs) noexcept
-    : Buffer::ConstBufferIterator(rhs)
-{
-}
-
-template<typename T>
 typename ConstBufferIteratorT<T>::reference ConstBufferIteratorT<T>::operator*() const noexcept
 {
     // Need to typecast buffer start address from void* before performing pointer arithmetic
-    T* buffer_start = static_cast<T*>(m_buffer->m_start_address);
-    return *(buffer_start + m_offset);
+    pointer element_ptr = static_cast<pointer>(m_buffer->m_start_address) + m_offset;
+    return *element_ptr;
 }
 
 template<typename T>
 typename ConstBufferIteratorT<T>::pointer ConstBufferIteratorT<T>::operator->() const noexcept
 {
     // Need to typecast buffer start address from void* before performing pointer arithmetic
-    T* buffer_start = static_cast<T*>(m_buffer->m_start_address);
-    return *(buffer_start + m_offset);
+    pointer element_ptr = static_cast<pointer>(m_buffer->m_start_address) + m_offset;
+    return element_ptr;
+}
+
+template<typename T>
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator++() noexcept
+{
+    Increment(1);
+    return *this;
+}
+
+template<typename T>
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator++(int) noexcept
+{
+    Increment(1);
+    return *this;
+}
+
+template<typename T>
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator--() noexcept
+{
+    Decrement(1);
+    return *this;
+}
+
+template<typename T>
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator--(int) noexcept
+{
+    Decrement(1);
+    return *this;
+}
+
+template<typename T>
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator+=(difference_type steps) noexcept
+{
+    if (steps > 0)
+        Increment((unsigned)steps);
+    else
+        Decrement((unsigned)(steps * -1));
+
+    return *this;
+}
+
+template<typename T>
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator-=(difference_type steps) noexcept
+{
+    if (steps > 0)
+        Decrement((unsigned)steps);
+    else
+        Increment((unsigned)(steps * -1));
+
+    return *this;
+}
+
+template<typename T>
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator=(ConstBufferIteratorT<T> const& rhs) noexcept
+{
+    Copy(rhs);
+    return *this;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  External operator overload definitions          ////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template<typename TArg>
+BufferIteratorT<TArg> operator+(BufferIteratorT<TArg> const& lhs, Buffer::difference_type rhs) noexcept
+{
+    BufferIteratorT tmp = lhs;
+    tmp += rhs;
+    return tmp;
+}
+
+template<typename TArg>
+BufferIteratorT<TArg> operator+(const Buffer::difference_type lhs, BufferIteratorT<TArg> const& rhs) noexcept
+{
+    BufferIteratorT tmp = rhs;
+    tmp += lhs;
+    return tmp;
+}
+
+template<typename TArg>
+Buffer::difference_type operator-(BufferIteratorT<TArg> const& lhs, BufferIteratorT<TArg> const& rhs) noexcept
+{
+    if (lhs < rhs)
+        return 0;
+
+    Buffer::difference_type diff = lhs.m_buffer->WrapIndex(lhs.m_offset) - rhs.m_buffer->WrapIndex(rhs.m_offset);
+    return diff;
+}
+
+template<typename TArg>
+BufferIteratorT<TArg> operator-(BufferIteratorT<TArg> const& lhs, const Buffer::difference_type rhs) noexcept
+{
+    BufferIteratorT tmp = lhs;
+    tmp -= rhs;
+    return tmp;
+}
+
+template<typename TArg>
+ConstBufferIteratorT<TArg> operator+(ConstBufferIteratorT<TArg> const& lhs, Buffer::difference_type rhs) noexcept
+{
+    ConstBufferIteratorT tmp = lhs;
+    tmp += rhs;
+    return tmp;
+}
+
+template<typename TArg>
+ConstBufferIteratorT<TArg> operator+(const Buffer::difference_type lhs, ConstBufferIteratorT<TArg> const& rhs) noexcept
+{
+    ConstBufferIteratorT tmp = rhs;
+    tmp += lhs;
+    return tmp;
+}
+
+template<typename TArg>
+Buffer::difference_type operator-(ConstBufferIteratorT<TArg> const& lhs, ConstBufferIteratorT<TArg> const& rhs) noexcept
+{
+    if (lhs < rhs)
+        return 0;
+
+    Buffer::difference_type diff =
+        (signed)(lhs.m_buffer->WrapIndex(lhs.m_offset) - rhs.m_buffer->WrapIndex(rhs.m_offset));
+    return diff;
+}
+
+template<typename TArg>
+ConstBufferIteratorT<TArg> operator-(ConstBufferIteratorT<TArg> const& lhs, const Buffer::difference_type rhs) noexcept
+{
+    ConstBufferIteratorT tmp = lhs;
+    tmp -= rhs;
+    return tmp;
 }
 
 } // namespace detail

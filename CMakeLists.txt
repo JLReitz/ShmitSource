@@ -10,17 +10,9 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options(
-  -pedantic
-
-  # -Wall
-  # -Wextra
-  # -Wconversion
-  # -Wsign-conversion
-  -g3
-  -Og
-  -DGTEST_HAS_TYPED_TEST_P
-)
+set(COMMON_FLAGS -pedantic -Wformat -Winline -Wmissing-declarations -Wreturn-type -Wsign-compare -Wsign-conversion -Wswitch -Wunused)
+set(C_FLAGS -Wmissing-prototypes -Wstrict-prototypes -Wtraditional)
+set(CXX_FLAGS -Wreorder)
 
 # Include google test using FetchContent
 include(FetchContent)
@@ -34,10 +26,19 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-enable_testing()
+# Declare ShmitCore as the build target
+add_library(ShmitCore "")
+
+target_compile_options(ShmitCore
+  PUBLIC
+  "${COMMON_FLAGS}"
+  "$<$<COMPILE_LANGUAGE:C>:${C_FLAGS}>"
+  "$<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAGS}>"
+)
 
 # Build ShmitCore
 add_subdirectory(Development/ShmitCore)
 
 # Build Tests
+enable_testing()
 add_subdirectory(Test/ShmitCore)

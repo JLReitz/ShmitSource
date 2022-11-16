@@ -108,9 +108,8 @@ constexpr Posit<NumDataPoints, ConstDataSize>::Posit(char const* tag, shmit::log
     m_tag[kTagMaxLength] = '\0';
 
     // Iterate through and initialize data points
-    size_t const_data_index    = 0;
-    size_t variable_data_index = 0;
-    size_t data_point_index    = 0;
+    size_t const_data_index = 0;
+    size_t data_point_index = 0;
     for (DataPointInit data_point_init : data_points)
     {
         shmit::log::diagnostics::DataPoint& data_point = m_data_points[data_point_index];

@@ -10,7 +10,7 @@ namespace shmit
 class Named
 {
 public:
-    static constexpr size_t kMaxSize = 16;
+    static constexpr size_t kMaxSize = 32; //!< A name may be, at max, 32 characters long
 
     Named() = default;
     Named(char const* name);

@@ -52,7 +52,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class OStreamType>
-OStreamLogger<OStreamType>::OStreamLogger(OStreamType& ostream, Level filter) : m_ostream(&ostream), Logger(filter)
+OStreamLogger<OStreamType>::OStreamLogger(OStreamType& ostream, Level filter) : Logger(filter), m_ostream(&ostream)
 {
 }
 
