@@ -403,7 +403,7 @@ public:
     /**!
      * @brief Inserts n values at any position within the Buffer. Pre-existing elements behind the insertion zone
      * [position, position + n) will be shifted back, with those that do not fit being truncated backmost-first. If the
-     * insertion itself wraps around the back of the buffer, the front will be truncated by the difference.
+     * insertion zone wraps around the back of the buffer, the front will be truncated by the difference.
      *
      * @param[in] position Insert position
      * @param[in] n Number of values to insert
@@ -415,7 +415,7 @@ public:
     /**!
      * @brief Inserts the contents of an initializer list at any position within the Buffer. Pre-existing elements
      * behind the insertion zone [position, position + list size) will be shifted back, with those that do not fit being
-     * truncated backmost-first.  If the insertion itself wraps around the back of the buffer, the front will be
+     * truncated backmost-first.  If the insertion zone wraps around the back of the buffer, the front will be
      * truncated by the difference.
      *
      * @param[in] position Insert position
@@ -427,7 +427,7 @@ public:
     /**!
      * @brief Inserts the contents of a range at any position within the Buffer. Pre-existing elements behind the
      * insertion zone [position, position + range size) will be shifted back, with those that do not fit being truncated
-     * backmost-first.  If the insertion itself wraps around the back of the buffer, the front will be truncated by the
+     * backmost-first. If the insertion zone wraps around the back of the buffer, the front will be truncated by the
      * difference.
      *
      * @tparam IteratorType Range iterator type
@@ -1180,9 +1180,9 @@ typename Buffer<T, AllocatorType>::iterator
     // Call the appropriate erase subroutine based on position's relative location to the front and back
     if (position == m_front)
         return EraseFront(1);
-    else if (position < m_back)
+    else if (position <= m_back)
         return EraseSection(position, 1);
-    else if (position == m_back)
+    else if (position > m_back)
         EraseBack(1);
 
     // Otherwise (or if the back element was just erased) return the end of the Buffer
@@ -1196,9 +1196,9 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::erase(
     size_type range_size = to_unsigned(j - i);
     if (i == m_front)
         return EraseFront(range_size);
-    else if (j < m_back)
+    else if (j <= m_back)
         return EraseSection(i, range_size);
-    else if (j == m_back)
+    else if (j > m_back)
         EraseBack(range_size);
 
     // Otherwise (or if the back was just erased) return the end of the Buffer
