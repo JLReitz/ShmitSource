@@ -16,4 +16,5 @@ file(GLOB_RECURSE SHMITCORE_HEADERS
 )
 
 # Finally, include all subdirectories
-include(Types/CMakeLists.txt)
+add_subdirectory(Containers)
+add_subdirectory(Math)

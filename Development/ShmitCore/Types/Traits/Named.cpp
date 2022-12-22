@@ -1,4 +1,4 @@
-#include <ShmitCore/Types/Generic/Named.hpp>
+#include <ShmitCore/Types/Traits/Named.hpp>
 
 namespace shmit
 {

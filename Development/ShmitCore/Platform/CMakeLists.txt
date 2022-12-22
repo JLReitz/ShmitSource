@@ -1,6 +1,2 @@
-# Target source files located within this subdirectory
-target_sources(ShmitCore
-    PRIVATE
-    Platform/MemoryHelp.cpp
-    Platform/PrimitiveAtomic.cpp
-)
+# Include directories below this one
+add_subdirectory(Clock)

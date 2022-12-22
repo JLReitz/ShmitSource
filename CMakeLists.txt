@@ -27,7 +27,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # Declare ShmitCore as the build target
-add_library(ShmitCore "")
+add_library(ShmitCore STATIC)
 
 target_compile_options(ShmitCore
   PUBLIC

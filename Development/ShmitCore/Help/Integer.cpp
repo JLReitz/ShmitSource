@@ -1,4 +1,4 @@
-#include <ShmitCore/Help/Integer.hpp>
+#include <shmitcore/Help/Integer.hpp>
 
 namespace shmit
 {

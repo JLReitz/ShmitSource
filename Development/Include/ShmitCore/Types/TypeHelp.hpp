@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/StdIncludes.hpp>
+#include <ShmitCore/Types/StdTypes.hpp>
 
 namespace shmit
 {
@@ -12,16 +12,16 @@ size_t ReferenceSizeInBytes();
 
 /**
  * @brief Returns the size of type T in bytes within this execution environment
- * 
+ *
  * @tparam T
- * @return size_t 
+ * @return size_t
  */
-template <typename T>
+template<typename T>
 size_t TypeSizeInBytes()
 {
     size_t typeSizeInMemUnits = sizeof(T);
     return typeSizeInMemUnits * CharSizeInBytes();
 }
 
-}
-}
+} // namespace help
+} // namespace shmit

@@ -1,4 +1,4 @@
-#include <ShmitCore/Types/Containers/Detail/Buffer.hpp>
+#include <ShmitCore/Containers/Detail/Buffer.hpp>
 
 #include <cstring>
 

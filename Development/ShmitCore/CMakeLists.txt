@@ -17,7 +17,8 @@ target_sources(ShmitCore
 # Finally, add source subdirectories
 # These will either add to the 'ShmitCore' target or create their own
 # Using 'include' instead of 'add_subdirectory' to lay out a paradigm, get off my back
-include(Help/CMakeLists.txt)
-include(Logging/CMakeLists.txt)
-include(Platform/CMakeLists.txt)
-include(Types/CMakeLists.txt)
+add_subdirectory(Containers)
+add_subdirectory(Help)
+add_subdirectory(Logging)
+add_subdirectory(Platform)
+add_subdirectory(Types)

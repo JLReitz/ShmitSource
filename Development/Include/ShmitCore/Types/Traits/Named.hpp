@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/StdIncludes.hpp>
+#include <ShmitCore/Types/StdTypes.hpp>
 
 #include <type_traits>
 
@@ -26,12 +26,12 @@ private:
 };
 
 template<typename T>
-struct IsNamed : std::false_type
+struct IsNamed : public std::false_type
 {
 };
 
 template<>
-struct IsNamed<Named> : std::true_type
+struct IsNamed<Named> : public std::true_type
 {
 };
 

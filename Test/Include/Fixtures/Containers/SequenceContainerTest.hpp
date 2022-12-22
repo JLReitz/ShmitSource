@@ -169,6 +169,12 @@ protected:
         }
     }
 
+    /**!
+     * @brief Erases an element somehwere in a test container and the truth check
+     *
+     * @param container Test container
+     * @param position Erase position, relative to the front of the container
+     */
     void EraseValueAtIndexedPosition(ContainerType& container, size_t position)
     {
         ContainerIteratorType  container_pos   = container.begin() + (signed)position;
@@ -178,6 +184,13 @@ protected:
         m_truth_check.erase(truth_check_pos);
     }
 
+    /**!
+     * @brief Erases a range of elements somewhere in a test container and the truth check
+     *
+     * @param container Test container
+     * @param position Erase start position, relative to the front of the container
+     * @param range_size Size of erased range
+     */
     void EraseRangeAtIndexedPosition(ContainerType& container, size_t position, size_t range_size)
     {
         ContainerIteratorType  container_pos         = container.begin() + (signed)position;

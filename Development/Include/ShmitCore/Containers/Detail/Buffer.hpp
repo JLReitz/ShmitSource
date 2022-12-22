@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ShmitCore/Logging/Diagnostics/Logging.hpp>
-#include <ShmitCore/Types/Generic/Named.hpp>
 #include <ShmitCore/Types/StdTypes.hpp>
+#include <ShmitCore/Types/Traits/Named.hpp>
 
 #include <limits>
 
@@ -311,15 +311,15 @@ public:
     reference operator*() const noexcept;
     pointer   operator->() const noexcept;
 
-    BufferIteratorT operator++() noexcept;
-    BufferIteratorT operator++(int) noexcept;
-    BufferIteratorT operator--() noexcept;
-    BufferIteratorT operator--(int) noexcept;
+    BufferIteratorT& operator++() noexcept;
+    BufferIteratorT& operator++(int) noexcept;
+    BufferIteratorT& operator--() noexcept;
+    BufferIteratorT& operator--(int) noexcept;
 
-    BufferIteratorT operator+=(difference_type steps) noexcept;
-    BufferIteratorT operator-=(difference_type steps) noexcept;
+    BufferIteratorT& operator+=(difference_type steps) noexcept;
+    BufferIteratorT& operator-=(difference_type steps) noexcept;
 
-    BufferIteratorT operator=(BufferIteratorT const& rhs) noexcept;
+    BufferIteratorT& operator=(BufferIteratorT const& rhs) noexcept;
 
     template<typename TArg>
     friend BufferIteratorT<TArg> operator+(BufferIteratorT<TArg> const& lhs, difference_type rhs) noexcept;
@@ -353,15 +353,15 @@ public:
     reference operator*() const noexcept;
     pointer   operator->() const noexcept;
 
-    ConstBufferIteratorT operator++() noexcept;
-    ConstBufferIteratorT operator++(int) noexcept;
-    ConstBufferIteratorT operator--() noexcept;
-    ConstBufferIteratorT operator--(int) noexcept;
+    ConstBufferIteratorT& operator++() noexcept;
+    ConstBufferIteratorT& operator++(int) noexcept;
+    ConstBufferIteratorT& operator--() noexcept;
+    ConstBufferIteratorT& operator--(int) noexcept;
 
-    ConstBufferIteratorT operator+=(difference_type steps) noexcept;
-    ConstBufferIteratorT operator-=(difference_type steps) noexcept;
+    ConstBufferIteratorT& operator+=(difference_type steps) noexcept;
+    ConstBufferIteratorT& operator-=(difference_type steps) noexcept;
 
-    ConstBufferIteratorT operator=(ConstBufferIteratorT const& rhs) noexcept;
+    ConstBufferIteratorT& operator=(ConstBufferIteratorT const& rhs) noexcept;
 
     template<typename TArg>
     friend ConstBufferIteratorT<TArg> operator+(ConstBufferIteratorT<TArg> const& lhs, difference_type rhs) noexcept;
@@ -419,35 +419,35 @@ typename BufferIteratorT<T>::pointer BufferIteratorT<T>::operator->() const noex
 }
 
 template<typename T>
-BufferIteratorT<T> BufferIteratorT<T>::operator++() noexcept
+BufferIteratorT<T>& BufferIteratorT<T>::operator++() noexcept
 {
     Increment(1);
     return *this;
 }
 
 template<typename T>
-BufferIteratorT<T> BufferIteratorT<T>::operator++(int) noexcept
+BufferIteratorT<T>& BufferIteratorT<T>::operator++(int) noexcept
 {
     Increment(1);
     return *this;
 }
 
 template<typename T>
-BufferIteratorT<T> BufferIteratorT<T>::operator--() noexcept
+BufferIteratorT<T>& BufferIteratorT<T>::operator--() noexcept
 {
     Decrement(1);
     return *this;
 }
 
 template<typename T>
-BufferIteratorT<T> BufferIteratorT<T>::operator--(int) noexcept
+BufferIteratorT<T>& BufferIteratorT<T>::operator--(int) noexcept
 {
     Decrement(1);
     return *this;
 }
 
 template<typename T>
-BufferIteratorT<T> BufferIteratorT<T>::operator+=(difference_type steps) noexcept
+BufferIteratorT<T>& BufferIteratorT<T>::operator+=(difference_type steps) noexcept
 {
     if (steps > 0)
         Increment((unsigned)steps);
@@ -458,7 +458,7 @@ BufferIteratorT<T> BufferIteratorT<T>::operator+=(difference_type steps) noexcep
 }
 
 template<typename T>
-BufferIteratorT<T> BufferIteratorT<T>::operator-=(difference_type steps) noexcept
+BufferIteratorT<T>& BufferIteratorT<T>::operator-=(difference_type steps) noexcept
 {
     if (steps > 0)
         Decrement((unsigned)steps);
@@ -469,7 +469,7 @@ BufferIteratorT<T> BufferIteratorT<T>::operator-=(difference_type steps) noexcep
 }
 
 template<typename T>
-BufferIteratorT<T> BufferIteratorT<T>::operator=(BufferIteratorT<T> const& rhs) noexcept
+BufferIteratorT<T>& BufferIteratorT<T>::operator=(BufferIteratorT<T> const& rhs) noexcept
 {
     Copy(rhs);
     return *this;
@@ -515,35 +515,35 @@ typename ConstBufferIteratorT<T>::pointer ConstBufferIteratorT<T>::operator->() 
 }
 
 template<typename T>
-ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator++() noexcept
+ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator++() noexcept
 {
     Increment(1);
     return *this;
 }
 
 template<typename T>
-ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator++(int) noexcept
+ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator++(int) noexcept
 {
     Increment(1);
     return *this;
 }
 
 template<typename T>
-ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator--() noexcept
+ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator--() noexcept
 {
     Decrement(1);
     return *this;
 }
 
 template<typename T>
-ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator--(int) noexcept
+ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator--(int) noexcept
 {
     Decrement(1);
     return *this;
 }
 
 template<typename T>
-ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator+=(difference_type steps) noexcept
+ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator+=(difference_type steps) noexcept
 {
     if (steps > 0)
         Increment((unsigned)steps);
@@ -554,7 +554,7 @@ ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator+=(difference_type step
 }
 
 template<typename T>
-ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator-=(difference_type steps) noexcept
+ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator-=(difference_type steps) noexcept
 {
     if (steps > 0)
         Decrement((unsigned)steps);
@@ -565,7 +565,7 @@ ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator-=(difference_type step
 }
 
 template<typename T>
-ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator=(ConstBufferIteratorT<T> const& rhs) noexcept
+ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator=(ConstBufferIteratorT<T> const& rhs) noexcept
 {
     Copy(rhs);
     return *this;

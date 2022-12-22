@@ -5,7 +5,7 @@
 #include <ShmitCore/Help/Integer.hpp>
 #include <ShmitCore/Logging/Diagnostics/Logging.hpp>
 #include <ShmitCore/Logging/Events/Logging.hpp>
-#include <ShmitCore/Types/Generic/Named.hpp>
+#include <ShmitCore/Types/Traits/Named.hpp>
 
 #include <algorithm>
 #include <iterator>
@@ -14,10 +14,10 @@
 namespace shmit
 {
 
-template<typename T, class AllocatorType = std::allocator<T>>
+template<typename T, class Allocator = std::allocator<T>>
 class Buffer : public detail::Buffer
 {
-    using alloc_traits = __gnu_cxx::__alloc_traits<AllocatorType>;
+    using alloc_traits = __gnu_cxx::__alloc_traits<Allocator>;
 
 public:
     using value_type      = typename alloc_traits::value_type;
@@ -26,7 +26,7 @@ public:
     using reference       = typename alloc_traits::reference;
     using const_reference = typename alloc_traits::const_reference;
 
-    using allocator_type = AllocatorType;
+    using allocator_type = Allocator;
 
     using iterator               = detail::BufferIteratorT<T>;
     using const_iterator         = detail::ConstBufferIteratorT<T>;
@@ -46,7 +46,7 @@ public:
      *
      * @param[in][in] allocator
      */
-    Buffer(AllocatorType const& allocator) noexcept;
+    Buffer(Allocator const& allocator) noexcept;
 
     /**!
      * @brief Constructs an allocated, empty Buffer
@@ -61,7 +61,7 @@ public:
      * @param[in] buffer_size Maximum size of the buffer
      * @param[in] allocator Allocator initializer
      */
-    Buffer(size_type buffer_size, AllocatorType const& allocator) noexcept;
+    Buffer(size_type buffer_size, Allocator const& allocator) noexcept;
 
     /**!
      * @brief Constructs a Buffer and fills it with one value.
@@ -78,7 +78,7 @@ public:
      * @param[in] init Initialized value of all elements
      * @param[in] allocator Allocator initializer
      */
-    Buffer(size_type buffer_size, T const& init, AllocatorType const& allocator) noexcept;
+    Buffer(size_type buffer_size, T const& init, Allocator const& allocator) noexcept;
 
     /**!
      * @brief Constructs a named, unallocated Buffer
@@ -93,7 +93,7 @@ public:
      * @param[in] name Name of the Buffer instance
      * @param[in] allocator Allocator initializer
      */
-    Buffer(char const* name, AllocatorType const& allocator) noexcept;
+    Buffer(char const* name, Allocator const& allocator) noexcept;
 
     /**!
      * @brief Constructs a named, allocated, empty Buffer
@@ -120,7 +120,7 @@ public:
      * @param[in] init Initialized value of all elements
      * @param[in] allocator Allocator initializer
      */
-    Buffer(char const* name, size_type buffer_size, T const& init, AllocatorType const& allocator) noexcept;
+    Buffer(char const* name, size_type buffer_size, T const& init, Allocator const& allocator) noexcept;
 
     /**!
      * @brief Constructs a Buffer with max size and contents of a provided initializer list
@@ -136,7 +136,7 @@ public:
      * @param[in] il Initializer list
      * @param[in] allocator Allocator initializer
      */
-    Buffer(std::initializer_list<T> il, AllocatorType const& allocator) noexcept;
+    Buffer(std::initializer_list<T> il, Allocator const& allocator) noexcept;
 
     /**!
      * @brief Constructs a named Buffer with max size and contents of a provided initializer list
@@ -154,7 +154,7 @@ public:
      * @param[in] il Initializer list
      * @param[in] allocator Allocator initializer
      */
-    Buffer(char const* name, std::initializer_list<T> il, AllocatorType const& allocator) noexcept;
+    Buffer(char const* name, std::initializer_list<T> il, Allocator const& allocator) noexcept;
 
     /**!
      * @brief Constructs a Buffer with max size and contents of a provided range
@@ -191,7 +191,7 @@ public:
      * @param[in] allocator Allocator initializer
      */
     template<typename IteratorType, typename = std::_RequireInputIter<IteratorType>>
-    Buffer(char const* name, IteratorType i, IteratorType j, AllocatorType const& allocator) noexcept;
+    Buffer(char const* name, IteratorType i, IteratorType j, Allocator const& allocator) noexcept;
 
     Buffer(Buffer const& rhs) noexcept;
     Buffer(Buffer&& rhs) noexcept;
@@ -667,41 +667,25 @@ private:
     void MoveAssignWithAllocatorPropogation(Buffer&& rhs, std::true_type t) noexcept;
     void MoveAssignWithAllocatorPropogation(Buffer&& rhs, std::false_type f) noexcept;
 
-    AllocatorType m_allocator; //!< Each Buffer gets its own individual Allocator!
+    Allocator m_allocator; //!< Each Buffer gets its own individual Allocator!
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Buffer constructor definitions          ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer() noexcept : detail::Buffer(sizeof(T))
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer() noexcept : detail::Buffer(sizeof(T))
 {
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(AllocatorType const& allocator) noexcept
-    : detail::Buffer(sizeof(T)), m_allocator {allocator}
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(Allocator const& allocator) noexcept : detail::Buffer(sizeof(T)), m_allocator {allocator}
 {
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType>::size_type buffer_size) noexcept : Buffer()
-{
-    // Only continue if the given buffer size is > 0
-    if (buffer_size > 0)
-    {
-        // Allocate storage for the container
-        m_start_address = AllocateBuffer(buffer_size);
-        if (m_start_address)
-            m_max_element_count = buffer_size;
-        // Failure to allocate here will post a diagnostic log posit
-    }
-}
-
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(size_type buffer_size, AllocatorType const& allocator) noexcept
-    : detail::Buffer(sizeof(T)), m_allocator {allocator}
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size) noexcept : Buffer()
 {
     // Only continue if the given buffer size is > 0
     if (buffer_size > 0)
@@ -714,9 +698,23 @@ Buffer<T, AllocatorType>::Buffer(size_type buffer_size, AllocatorType const& all
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType>::size_type buffer_size, T const& init) noexcept
-    : Buffer(buffer_size)
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(size_type buffer_size, Allocator const& allocator) noexcept
+    : detail::Buffer(sizeof(T)), m_allocator {allocator}
+{
+    // Only continue if the given buffer size is > 0
+    if (buffer_size > 0)
+    {
+        // Allocate storage for the container
+        m_start_address = AllocateBuffer(buffer_size);
+        if (m_start_address)
+            m_max_element_count = buffer_size;
+        // Failure to allocate here will post a diagnostic log posit
+    }
+}
+
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size, T const& init) noexcept : Buffer(buffer_size)
 {
     if (m_start_address)
     {
@@ -733,9 +731,9 @@ Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType>::size_type buffer_size
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType>::size_type buffer_size, T const& init,
-                                 AllocatorType const& allocator) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size, T const& init,
+                             Allocator const& allocator) noexcept
     : detail::Buffer(sizeof(T)), m_allocator {allocator}
 {
     // Only continue if the given buffer size is > 0
@@ -749,19 +747,19 @@ Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType>::size_type buffer_size
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(char const* name) noexcept : detail::Buffer(name, sizeof(T))
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(char const* name) noexcept : detail::Buffer(name, sizeof(T))
 {
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(char const* name, AllocatorType const& allocator) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(char const* name, Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(char const* name, Buffer<T, AllocatorType>::size_type buffer_size) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(char const* name, Buffer<T, Allocator>::size_type buffer_size) noexcept
     : detail::Buffer(name, sizeof(T))
 {
     // Only continue if the given buffer size is > 0
@@ -775,9 +773,8 @@ Buffer<T, AllocatorType>::Buffer(char const* name, Buffer<T, AllocatorType>::siz
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(char const* name, Buffer<T, AllocatorType>::size_type buffer_size,
-                                 T const& init) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(char const* name, Buffer<T, Allocator>::size_type buffer_size, T const& init) noexcept
     : Buffer(name, buffer_size)
 {
     if (m_start_address)
@@ -793,9 +790,9 @@ Buffer<T, AllocatorType>::Buffer(char const* name, Buffer<T, AllocatorType>::siz
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(char const* name, Buffer<T, AllocatorType>::size_type buffer_size, T const& init,
-                                 AllocatorType const& allocator) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(char const* name, Buffer<T, Allocator>::size_type buffer_size, T const& init,
+                             Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
     // Only continue if the given buffer size is > 0
@@ -820,15 +817,15 @@ Buffer<T, AllocatorType>::Buffer(char const* name, Buffer<T, AllocatorType>::siz
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(std::initializer_list<T> il) noexcept : Buffer(il.size())
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(std::initializer_list<T> il) noexcept : Buffer(il.size())
 {
     if (m_start_address)
         assign(il);
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(std::initializer_list<T> il, AllocatorType const& allocator) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, Allocator const& allocator) noexcept
     : detail::Buffer(sizeof(T)), m_allocator {allocator}
 {
     // Only continue if the list size is > 0
@@ -846,15 +843,15 @@ Buffer<T, AllocatorType>::Buffer(std::initializer_list<T> il, AllocatorType cons
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(char const* name, std::initializer_list<T> il) noexcept : Buffer(name, il.size())
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(char const* name, std::initializer_list<T> il) noexcept : Buffer(name, il.size())
 {
     if (m_start_address)
         assign(il);
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(char const* name, std::initializer_list<T> il, AllocatorType const& allocator) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(char const* name, std::initializer_list<T> il, Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
     // Only continue if the list size is > 0
@@ -872,27 +869,26 @@ Buffer<T, AllocatorType>::Buffer(char const* name, std::initializer_list<T> il, 
     }
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-Buffer<T, AllocatorType>::Buffer(IteratorType i, IteratorType j) noexcept : Buffer(to_unsigned(j - i))
+Buffer<T, Allocator>::Buffer(IteratorType i, IteratorType j) noexcept : Buffer(to_unsigned(j - i))
 {
     if (m_start_address)
         assign(i, j);
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-Buffer<T, AllocatorType>::Buffer(char const* name, IteratorType i, IteratorType j) noexcept
+Buffer<T, Allocator>::Buffer(char const* name, IteratorType i, IteratorType j) noexcept
     : Buffer(name, std::min((j - i), 0u))
 {
     if (m_start_address)
         assign(i, j);
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-Buffer<T, AllocatorType>::Buffer(char const* name, IteratorType i, IteratorType j,
-                                 AllocatorType const& allocator) noexcept
+Buffer<T, Allocator>::Buffer(char const* name, IteratorType i, IteratorType j, Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
     // Only continue if the range size is > 0
@@ -910,8 +906,8 @@ Buffer<T, AllocatorType>::Buffer(char const* name, IteratorType i, IteratorType 
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType> const& rhs) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(Buffer<T, Allocator> const& rhs) noexcept
     : detail::Buffer(rhs.GetName(), sizeof(T)),
       m_allocator(alloc_traits::select_on_container_copy_construction(rhs.m_allocator))
 {
@@ -919,16 +915,16 @@ Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType> const& rhs) noexcept
     CopyBuffer(rhs);
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::Buffer(Buffer<T, AllocatorType>&& rhs) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>&& rhs) noexcept
     : detail::Buffer(rhs.GetName(), sizeof(T)), m_allocator(std::move(rhs.m_allocator))
 {
     LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
     MoveMemoryContents(std::forward<detail::Buffer&&>(rhs));
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>::~Buffer() noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>::~Buffer() noexcept
 {
     LOG_MEMBER_DIAGNOSTIC_POSIT(destructing)
     DeallocateBuffer();
@@ -940,8 +936,8 @@ Buffer<T, AllocatorType>::~Buffer() noexcept
 
 //  Public  ============================================================================================================
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::assign(Buffer<T, AllocatorType>::size_type n, T const& value) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::assign(Buffer<T, Allocator>::size_type n, T const& value) noexcept
 {
     // Guard against a count of 0
     if (!n)
@@ -962,15 +958,15 @@ void Buffer<T, AllocatorType>::assign(Buffer<T, AllocatorType>::size_type n, T c
         m_back = assignment_end;
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::assign(std::initializer_list<T> il) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::assign(std::initializer_list<T> il) noexcept
 {
     assign(il.begin(), il.end());
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-void Buffer<T, AllocatorType>::assign(IteratorType i, IteratorType j) noexcept
+void Buffer<T, Allocator>::assign(IteratorType i, IteratorType j) noexcept
 {
     size_type range_size = to_unsigned(j - i);
 
@@ -997,8 +993,8 @@ void Buffer<T, AllocatorType>::assign(IteratorType i, IteratorType j) noexcept
         m_back = assignment_end;
 }
 
-template<typename T, class AllocatorType>
-T& Buffer<T, AllocatorType>::at(Buffer<T, AllocatorType>::size_type index) noexcept
+template<typename T, class Allocator>
+T& Buffer<T, Allocator>::at(Buffer<T, Allocator>::size_type index) noexcept
 {
     // Check for empty or out-of-bounds conditions
     if (empty() || (index >= m_max_element_count))
@@ -1011,8 +1007,8 @@ T& Buffer<T, AllocatorType>::at(Buffer<T, AllocatorType>::size_type index) noexc
     return *it;
 }
 
-template<typename T, class AllocatorType>
-T const& Buffer<T, AllocatorType>::at(Buffer<T, AllocatorType>::size_type index) const noexcept
+template<typename T, class Allocator>
+T const& Buffer<T, Allocator>::at(Buffer<T, Allocator>::size_type index) const noexcept
 {
     // Check for empty or out-of-bounds conditions
     if (empty() || (index >= m_max_element_count))
@@ -1025,28 +1021,28 @@ T const& Buffer<T, AllocatorType>::at(Buffer<T, AllocatorType>::size_type index)
     return *it;
 }
 
-template<typename T, class AllocatorType>
-T& Buffer<T, AllocatorType>::back() noexcept
+template<typename T, class Allocator>
+T& Buffer<T, Allocator>::back() noexcept
 {
     iterator back = end() - 1;
     return *back;
 }
 
-template<typename T, class AllocatorType>
-T const& Buffer<T, AllocatorType>::back() const noexcept
+template<typename T, class Allocator>
+T const& Buffer<T, Allocator>::back() const noexcept
 {
     const_iterator back = cend() - 1;
     return *back;
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::begin() noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::begin() noexcept
 {
     return iterator(m_front);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::const_iterator Buffer<T, AllocatorType>::begin() const noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::begin() const noexcept
 {
     // If the Buffer is empty, return end() instead
     if (empty())
@@ -1055,8 +1051,8 @@ typename Buffer<T, AllocatorType>::const_iterator Buffer<T, AllocatorType>::begi
     return const_iterator(m_front);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::const_iterator Buffer<T, AllocatorType>::cbegin() const noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::cbegin() const noexcept
 {
     // If the Buffer is empty, return cend() instead
     if (empty())
@@ -1065,16 +1061,16 @@ typename Buffer<T, AllocatorType>::const_iterator Buffer<T, AllocatorType>::cbeg
     return const_iterator(m_front);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::const_iterator Buffer<T, AllocatorType>::cend() const noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::cend() const noexcept
 {
     detail::Buffer::Iterator end = m_back;
     IncrementBounded(end, 1);
     return const_iterator(end);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::const_reverse_iterator Buffer<T, AllocatorType>::crbegin() const noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::const_reverse_iterator Buffer<T, Allocator>::crbegin() const noexcept
 {
     // If the Buffer is empty, return crend() instead
     if (empty())
@@ -1083,18 +1079,18 @@ typename Buffer<T, AllocatorType>::const_reverse_iterator Buffer<T, AllocatorTyp
     return const_reverse_iterator(m_front);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::const_reverse_iterator Buffer<T, AllocatorType>::crend() const noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::const_reverse_iterator Buffer<T, Allocator>::crend() const noexcept
 {
     detail::Buffer::Iterator end = m_back;
     IncrementBounded(end, 1);
     return const_reverse_iterator(end);
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename... ValueTypes>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::emplace(
-    typename Buffer<T, AllocatorType>::iterator position, ValueTypes&&... args) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::emplace(typename Buffer<T, Allocator>::iterator position,
+                                                                      ValueTypes&&... args) noexcept
 {
     LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_random)
     PrepareForRandomPlacement(position, 1);
@@ -1103,9 +1099,9 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::emplace(
     return position;
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename... ValueTypes>
-void Buffer<T, AllocatorType>::emplace_back(ValueTypes&&... args) noexcept
+void Buffer<T, Allocator>::emplace_back(ValueTypes&&... args) noexcept
 {
     LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_back)
 
@@ -1131,9 +1127,9 @@ void Buffer<T, AllocatorType>::emplace_back(ValueTypes&&... args) noexcept
     m_back = emplace_position;
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename... ValueTypes>
-void Buffer<T, AllocatorType>::emplace_front(ValueTypes&&... args) noexcept
+void Buffer<T, Allocator>::emplace_front(ValueTypes&&... args) noexcept
 {
     LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_front)
 
@@ -1157,25 +1153,25 @@ void Buffer<T, AllocatorType>::emplace_front(ValueTypes&&... args) noexcept
     m_front = emplace_position;
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::end() noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::end() noexcept
 {
     detail::Buffer::Iterator end = m_back;
     IncrementBounded(end, 1);
     return iterator(end);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::const_iterator Buffer<T, AllocatorType>::end() const noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::end() const noexcept
 {
     detail::Buffer::Iterator end = m_back;
     IncrementBounded(end, 1);
     return const_iterator(end);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator
-    Buffer<T, AllocatorType>::erase(typename Buffer<T, AllocatorType>::iterator position) noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator
+    Buffer<T, Allocator>::erase(typename Buffer<T, Allocator>::iterator position) noexcept
 {
     // Call the appropriate erase subroutine based on position's relative location to the front and back
     if (position == m_front)
@@ -1189,9 +1185,9 @@ typename Buffer<T, AllocatorType>::iterator
     return end();
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::erase(
-    typename Buffer<T, AllocatorType>::iterator i, typename Buffer<T, AllocatorType>::iterator j) noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::erase(typename Buffer<T, Allocator>::iterator i,
+                                                                    typename Buffer<T, Allocator>::iterator j) noexcept
 {
     size_type range_size = to_unsigned(j - i);
     if (i == m_front)
@@ -1205,23 +1201,23 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::erase(
     return end();
 }
 
-template<typename T, class AllocatorType>
-T& Buffer<T, AllocatorType>::front() noexcept
+template<typename T, class Allocator>
+T& Buffer<T, Allocator>::front() noexcept
 {
     iterator front = begin();
     return *front;
 }
 
-template<typename T, class AllocatorType>
-T const& Buffer<T, AllocatorType>::front() const noexcept
+template<typename T, class Allocator>
+T const& Buffer<T, Allocator>::front() const noexcept
 {
     const_iterator front = cbegin();
     return *front;
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator
-    Buffer<T, AllocatorType>::insert(typename Buffer<T, AllocatorType>::iterator position, T const& value) noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
+                                                                     T const& value) noexcept
 {
     // Make a copy of the reference value, it could exist in the buffer already and be affected by the
     // moving/truncating of elements
@@ -1237,9 +1233,9 @@ typename Buffer<T, AllocatorType>::iterator
     return FillInsert(position, 1, copyOfValue);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator
-    Buffer<T, AllocatorType>::insert(typename Buffer<T, AllocatorType>::iterator position, T&& value) noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
+                                                                     T&& value) noexcept
 {
     // If the position is the back or beginning of the buffer, perform a push
     if (position == m_front)
@@ -1251,10 +1247,10 @@ typename Buffer<T, AllocatorType>::iterator
     return FillInsert(position, 1, std::forward<T>(value));
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator
-    Buffer<T, AllocatorType>::insert(typename Buffer<T, AllocatorType>::iterator position,
-                                     Buffer<T, AllocatorType>::size_type n, T const& value) noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
+                                                                     Buffer<T, Allocator>::size_type         n,
+                                                                     T const& value) noexcept
 {
     // Guard against a count of 0
     if (!n)
@@ -1274,9 +1270,9 @@ typename Buffer<T, AllocatorType>::iterator
     return FillInsert(position, n, copyOfValue);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::insert(
-    typename Buffer<T, AllocatorType>::iterator position, std::initializer_list<T> il) noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
+                                                                     std::initializer_list<T> il) noexcept
 {
     // If the position is the back or beginning of the buffer, perform a push
     if (position == m_front)
@@ -1288,10 +1284,10 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::insert(
     return RangeInsert(position, il.begin(), il.end());
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::insert(
-    typename Buffer<T, AllocatorType>::iterator position, IteratorType i, IteratorType j) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
+                                                                     IteratorType i, IteratorType j) noexcept
 {
     // If the position is the back or beginning of the buffer, perform a push
     if (position == m_front)
@@ -1303,8 +1299,8 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::insert(
     return RangeInsert(position, i, j);
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::pop_back() noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::pop_back() noexcept
 {
     LOG_MEMBER_DIAGNOSTIC_POSIT(pop_back)
 
@@ -1322,8 +1318,8 @@ void Buffer<T, AllocatorType>::pop_back() noexcept
     }
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::pop_front() noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::pop_front() noexcept
 {
     LOG_MEMBER_DIAGNOSTIC_POSIT(pop_front)
 
@@ -1341,32 +1337,32 @@ void Buffer<T, AllocatorType>::pop_front() noexcept
     }
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::push_back(T const& value) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::push_back(T const& value) noexcept
 {
     FillPushBack(1, value);
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::push_back(T&& value) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::push_back(T&& value) noexcept
 {
     FillPushBack(1, std::forward<T>(value));
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::push_front(T const& value) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::push_front(T const& value) noexcept
 {
     FillPushFront(1, value);
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::push_front(T&& value) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::push_front(T&& value) noexcept
 {
     FillPushFront(1, std::forward<T>(value));
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::reverse_iterator Buffer<T, AllocatorType>::rbegin() noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::reverse_iterator Buffer<T, Allocator>::rbegin() noexcept
 {
     // If the Buffer is empty, return rend() instead
     if (empty())
@@ -1375,8 +1371,8 @@ typename Buffer<T, AllocatorType>::reverse_iterator Buffer<T, AllocatorType>::rb
     return reverse_iterator(m_front);
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::reverse_iterator Buffer<T, AllocatorType>::rend() noexcept
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::reverse_iterator Buffer<T, Allocator>::rend() noexcept
 {
     detail::Buffer::Iterator end = m_back;
     IncrementBounded(end, 1);
@@ -1384,8 +1380,8 @@ typename Buffer<T, AllocatorType>::reverse_iterator Buffer<T, AllocatorType>::re
 }
 
 // TODO refactor
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::resize(Buffer<T, AllocatorType>::size_type n) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::resize(Buffer<T, Allocator>::size_type n) noexcept
 {
     T* new_buffer = AllocateBuffer(n);
     if (new_buffer)
@@ -1404,22 +1400,22 @@ void Buffer<T, AllocatorType>::resize(Buffer<T, AllocatorType>::size_type n) noe
     // Failure to allocate here will post a diagnostic log posit
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::swap(Buffer& rhs) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::swap(Buffer& rhs) noexcept
 {
     detail::Buffer::Swap(rhs);
 
-    // If AllocatorType requires that it be propogated on container swap, do so now
+    // If Allocator requires that it be propogated on container swap, do so now
     if (alloc_traits::propagate_on_container_swap::value == true)
     {
-        AllocatorType tempAllocator = m_allocator;
-        m_allocator                 = rhs.m_allocator;
-        rhs.m_allocator             = tempAllocator;
+        Allocator tempAllocator = m_allocator;
+        m_allocator             = rhs.m_allocator;
+        rhs.m_allocator         = tempAllocator;
     }
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>& Buffer<T, AllocatorType>::operator=(Buffer<T, AllocatorType> const& rhs) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(Buffer<T, Allocator> const& rhs) noexcept
 {
     // Tag-dispatch the appropriate routine, selected at compile time
     CopyAssignWithAllocatorPropogation(rhs, typename alloc_traits::propagate_on_container_copy_assignment {});
@@ -1427,19 +1423,19 @@ Buffer<T, AllocatorType>& Buffer<T, AllocatorType>::operator=(Buffer<T, Allocato
     return *this;
 }
 
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>& Buffer<T, AllocatorType>::operator=(Buffer<T, AllocatorType>&& rhs) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(Buffer<T, Allocator>&& rhs) noexcept
 {
     // Tag-dispatch the appropriate routine, selected at compile time
-    MoveAssignWithAllocatorPropogation(std::forward<Buffer<T, AllocatorType>>(rhs),
+    MoveAssignWithAllocatorPropogation(std::forward<Buffer<T, Allocator>>(rhs),
                                        typename alloc_traits::propagate_on_container_move_assignment {});
 
     return *this;
 }
 
 // TODO refactor
-template<typename T, class AllocatorType>
-Buffer<T, AllocatorType>& Buffer<T, AllocatorType>::operator=(std::initializer_list<T> const& il) noexcept
+template<typename T, class Allocator>
+Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(std::initializer_list<T> const& il) noexcept
 {
     size_type il_size = il.size();
     if (m_max_element_count != il_size)
@@ -1452,16 +1448,16 @@ Buffer<T, AllocatorType>& Buffer<T, AllocatorType>::operator=(std::initializer_l
     return *this;
 }
 
-template<typename T, class AllocatorType>
-T& Buffer<T, AllocatorType>::operator[](Buffer<T, AllocatorType>::size_type index) noexcept
+template<typename T, class Allocator>
+T& Buffer<T, Allocator>::operator[](Buffer<T, Allocator>::size_type index) noexcept
 {
     iterator it = begin();
     std::advance(it, index);
     return *it;
 }
 
-template<typename T, class AllocatorType>
-T const& Buffer<T, AllocatorType>::operator[](Buffer<T, AllocatorType>::size_type index) const noexcept
+template<typename T, class Allocator>
+T const& Buffer<T, Allocator>::operator[](Buffer<T, Allocator>::size_type index) const noexcept
 {
     const_iterator it = cbegin();
     std::advance(it, index);
@@ -1470,8 +1466,8 @@ T const& Buffer<T, AllocatorType>::operator[](Buffer<T, AllocatorType>::size_typ
 
 //  Private ============================================================================================================
 
-template<typename T, class AllocatorType>
-T* Buffer<T, AllocatorType>::AllocateBuffer(Buffer<T, AllocatorType>::size_type n) noexcept
+template<typename T, class Allocator>
+T* Buffer<T, Allocator>::AllocateBuffer(Buffer<T, Allocator>::size_type n) noexcept
 {
     // Guard against Buffer sizes larger than the allowable limit
     if (n > kMaxAllowableSize)
@@ -1484,9 +1480,9 @@ T* Buffer<T, AllocatorType>::AllocateBuffer(Buffer<T, AllocatorType>::size_type 
     return bufferPtr;
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::CopyAssignWithAllocatorPropogation(Buffer<T, AllocatorType> const& rhs,
-                                                                  std::true_type                  t) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::CopyAssignWithAllocatorPropogation(Buffer<T, Allocator> const& rhs,
+                                                              std::true_type              t) noexcept
 {
     // Deallocate current buffer, the lhs allocator may not be able to later
     DeallocateBuffer();
@@ -1496,9 +1492,9 @@ void Buffer<T, AllocatorType>::CopyAssignWithAllocatorPropogation(Buffer<T, Allo
     CopyBuffer(rhs);
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::CopyAssignWithAllocatorPropogation(Buffer<T, AllocatorType> const& rhs,
-                                                                  std::false_type                 f) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::CopyAssignWithAllocatorPropogation(Buffer<T, Allocator> const& rhs,
+                                                              std::false_type             f) noexcept
 {
     if (m_max_element_count != rhs.m_max_element_count)
         resize(rhs.m_max_element_count);
@@ -1509,8 +1505,8 @@ void Buffer<T, AllocatorType>::CopyAssignWithAllocatorPropogation(Buffer<T, Allo
     assign(rhs.begin(), rhs.end());
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::CopyBuffer(Buffer const& rhs) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::CopyBuffer(Buffer const& rhs) noexcept
 {
     if (rhs.m_start_address && rhs.m_max_element_count)
     {
@@ -1525,8 +1521,8 @@ void Buffer<T, AllocatorType>::CopyBuffer(Buffer const& rhs) noexcept
     // Failure to allocate here will post a diagnostic log posit
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::DeallocateBuffer() noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::DeallocateBuffer() noexcept
 {
     // Only continue if the start address is valid
     if (m_start_address)
@@ -1546,8 +1542,8 @@ void Buffer<T, AllocatorType>::DeallocateBuffer() noexcept
     }
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::EraseFront(Buffer<T, AllocatorType>::size_type n)
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::EraseFront(Buffer<T, Allocator>::size_type n)
 {
     iterator* it = static_cast<iterator*>(&m_front); // Cast to typed iterator for access to operator*
 
@@ -1575,8 +1571,8 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::EraseFront
     return *it;
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::EraseBack(Buffer<T, AllocatorType>::size_type n)
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::EraseBack(Buffer<T, Allocator>::size_type n)
 {
     LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(erase_back, shmit::log::diagnostics::Print("Count:%u", n))
 
@@ -1607,9 +1603,9 @@ void Buffer<T, AllocatorType>::EraseBack(Buffer<T, AllocatorType>::size_type n)
     }
 }
 
-template<typename T, class AllocatorType>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::EraseSection(
-    typename Buffer<T, AllocatorType>::iterator start, Buffer<T, AllocatorType>::size_type n)
+template<typename T, class Allocator>
+typename Buffer<T, Allocator>::iterator
+    Buffer<T, Allocator>::EraseSection(typename Buffer<T, Allocator>::iterator start, Buffer<T, Allocator>::size_type n)
 {
     if (n)
     {
@@ -1655,10 +1651,11 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::EraseSecti
     return start;
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename ValueType>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::FillInsert(
-    Buffer<T, AllocatorType>::iterator position, Buffer<T, AllocatorType>::size_type n, ValueType&& value) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<T, Allocator>::iterator  position,
+                                                                         Buffer<T, Allocator>::size_type n,
+                                                                         ValueType&&                     value) noexcept
 {
     LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_random, shmit::log::diagnostics::Print("Count:%u", n))
 
@@ -1675,10 +1672,10 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::FillInsert
     return position;
 }
 
-template<typename T, class AllocatorType>
-template<typename ValueType> // T& or T&&
-typename Buffer<T, AllocatorType>::iterator
-    Buffer<T, AllocatorType>::FillPushBack(Buffer<T, AllocatorType>::size_type n, ValueType&& value) noexcept
+template<typename T, class Allocator>
+template<typename ValueType>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushBack(Buffer<T, Allocator>::size_type n,
+                                                                           ValueType&& value) noexcept
 {
     LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_back, shmit::log::diagnostics::Print("Count:%u", n))
 
@@ -1698,10 +1695,10 @@ typename Buffer<T, AllocatorType>::iterator
     return iterator(insert_start);
 }
 
-template<typename T, class AllocatorType>
-template<typename ValueType> // T& or T&&
-typename Buffer<T, AllocatorType>::iterator
-    Buffer<T, AllocatorType>::FillPushFront(Buffer<T, AllocatorType>::size_type n, ValueType&& value) noexcept
+template<typename T, class Allocator>
+template<typename ValueType>
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushFront(Buffer<T, Allocator>::size_type n,
+                                                                            ValueType&& value) noexcept
 {
     LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_front, shmit::log::diagnostics::Print("Count:%u", n))
 
@@ -1720,11 +1717,11 @@ typename Buffer<T, AllocatorType>::iterator
     return iterator(insert_start);
 }
 
-template<typename T, class AllocatorType>
-template<typename ValueType> // T& or T&&
-detail::Buffer::Iterator Buffer<T, AllocatorType>::FillInForward(typename Buffer<T, AllocatorType>::iterator position,
-                                                                 Buffer<T, AllocatorType>::size_type         n,
-                                                                 ValueType&& value) noexcept
+template<typename T, class Allocator>
+template<typename ValueType>
+detail::Buffer::Iterator Buffer<T, Allocator>::FillInForward(typename Buffer<T, Allocator>::iterator position,
+                                                             Buffer<T, Allocator>::size_type         n,
+                                                             ValueType&&                             value) noexcept
 {
     for (size_t count = 0; count < n; count++)
     {
@@ -1736,10 +1733,10 @@ detail::Buffer::Iterator Buffer<T, AllocatorType>::FillInForward(typename Buffer
     return position;
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-detail::Buffer::Iterator Buffer<T, AllocatorType>::FillRangeForward(
-    typename Buffer<T, AllocatorType>::iterator position, IteratorType i, IteratorType j) noexcept
+detail::Buffer::Iterator Buffer<T, Allocator>::FillRangeForward(typename Buffer<T, Allocator>::iterator position,
+                                                                IteratorType i, IteratorType j) noexcept
 {
     size_type range_size = to_unsigned(j - i);
     for (size_t count = 0; count < range_size; count++)
@@ -1752,9 +1749,8 @@ detail::Buffer::Iterator Buffer<T, AllocatorType>::FillRangeForward(
     return position;
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::MoveAssignWithAllocatorPropogation(Buffer<T, AllocatorType>&& rhs,
-                                                                  std::true_type             t) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::MoveAssignWithAllocatorPropogation(Buffer<T, Allocator>&& rhs, std::true_type t) noexcept
 {
     // Deallocate the current buffer, move the allocator from the right hand side to here, and move memory contents
     DeallocateBuffer();
@@ -1762,9 +1758,8 @@ void Buffer<T, AllocatorType>::MoveAssignWithAllocatorPropogation(Buffer<T, Allo
     MoveMemoryContents(std::forward<detail::Buffer>(rhs));
 }
 
-template<typename T, class AllocatorType>
-void Buffer<T, AllocatorType>::MoveAssignWithAllocatorPropogation(Buffer<T, AllocatorType>&& rhs,
-                                                                  std::false_type            f) noexcept
+template<typename T, class Allocator>
+void Buffer<T, Allocator>::MoveAssignWithAllocatorPropogation(Buffer<T, Allocator>&& rhs, std::false_type f) noexcept
 {
     if (m_allocator == rhs.m_allocator)
     {
@@ -1776,10 +1771,10 @@ void Buffer<T, AllocatorType>::MoveAssignWithAllocatorPropogation(Buffer<T, Allo
         LOG_MEMBER_DIAGNOSTIC_POSIT(bad_move)
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::RangeInsert(
-    typename Buffer<T, AllocatorType>::iterator position, IteratorType i, IteratorType j) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsert(
+    typename Buffer<T, Allocator>::iterator position, IteratorType i, IteratorType j) noexcept
 {
     // Guard against overfill
     size_type range_size          = to_unsigned(j - i);
@@ -1799,10 +1794,9 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::RangeInser
     return position;
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::RangePushBack(IteratorType i,
-                                                                                    IteratorType j) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushBack(IteratorType i, IteratorType j) noexcept
 {
     // Guard against overfill
     size_type range_size           = to_unsigned(j - i);
@@ -1825,10 +1819,9 @@ typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::RangePushB
     return iterator(insert_start);
 }
 
-template<typename T, class AllocatorType>
+template<typename T, class Allocator>
 template<typename IteratorType, typename>
-typename Buffer<T, AllocatorType>::iterator Buffer<T, AllocatorType>::RangePushFront(IteratorType i,
-                                                                                     IteratorType j) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushFront(IteratorType i, IteratorType j) noexcept
 {
     // Guard against overfill
     size_type range_size           = to_unsigned(j - i);
@@ -1888,8 +1881,8 @@ bool operator!=(Buffer<ValueType, AllocatorTypeArg> const& lhs, Buffer<ValueType
 namespace std
 {
 
-template<typename T, class AllocatorType>
-void swap(shmit::Buffer<T, AllocatorType>& rhs, shmit::Buffer<T, AllocatorType>& lhs) noexcept
+template<typename T, class Allocator>
+void swap(shmit::Buffer<T, Allocator>& rhs, shmit::Buffer<T, Allocator>& lhs) noexcept
 {
     rhs.swap(lhs);
 }

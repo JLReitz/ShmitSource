@@ -5,7 +5,7 @@
 
 #include <ShmitCore/Help/CString.hpp>
 #include <ShmitCore/Logging/Logger.hpp>
-#include <ShmitCore/Types/Generic/Named.hpp>
+#include <ShmitCore/Types/Traits/Named.hpp>
 
 #include <cstdio>
 
