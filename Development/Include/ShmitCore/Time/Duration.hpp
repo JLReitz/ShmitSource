@@ -23,7 +23,7 @@ public:
 
     constexpr Rep Count() const noexcept;
 
-    template<typename T, std::enable_if_t<std::is_arithmetic<T>::value, std::nullptr_t> = nullptr>
+    template<typename T>
     constexpr T CountInSeconds() const noexcept;
 
     constexpr bool operator==(Duration const& rhs) const noexcept;
@@ -42,20 +42,20 @@ public:
     constexpr Duration operator-(intmax_t rhs) const noexcept;
     constexpr Duration operator%(intmax_t rhs) const noexcept;
 
-    template<typename T, std::enable_if_t<std::is_arithmetic<T>::value, std::nullptr_t> = nullptr>
+    template<typename T>
     constexpr Duration operator*(T rhs) const noexcept;
 
-    template<typename T, std::enable_if_t<std::is_arithmetic<T>::value, std::nullptr_t> = nullptr>
+    template<typename T>
     constexpr Duration operator/(T rhs) const noexcept;
 
     constexpr Duration& operator+=(Duration const& rhs) noexcept;
     constexpr Duration& operator-=(Duration const& rhs) noexcept;
     constexpr Duration& operator%=(intmax_t rhs) noexcept;
 
-    template<typename T, std::enable_if_t<std::is_arithmetic<T>::value, std::nullptr_t> = nullptr>
+    template<typename T>
     constexpr Duration& operator*=(T rhs) noexcept;
 
-    template<typename T, std::enable_if_t<std::is_arithmetic<T>::value, std::nullptr_t> = nullptr>
+    template<typename T>
     constexpr Duration& operator/=(T rhs) noexcept;
 
     constexpr Duration& operator=(Duration const& rhs) noexcept;
@@ -110,13 +110,13 @@ constexpr typename Duration<Denomination>::Rep Duration<Denomination>::Count() c
 }
 
 template<class Denomination>
-template<typename T, std::enable_if_t<std::is_arithmetic<T>::value, std::nullptr_t>>
+template<typename T>
 constexpr T Duration<Denomination>::CountInSeconds() const noexcept
 {
-    constexpr math::Ratio conversion = CountsPerSecond::Value();
+    static_assert(std::is_arithmetic_v<T>, "'T' type must be arithmetic fundamental type");
 
-    T count_rep = static_cast<T>(m_count);
-    return count_rep * conversion;
+    constexpr Seconds this_in_seconds = duration_cast(*this);
+    return static_cast<T>(this_in_seconds.m_count);
 }
 
 template<class Denomination>
@@ -206,18 +206,22 @@ constexpr Duration<Denomination> Duration<Denomination>::operator%(intmax_t rhs)
 }
 
 template<class Denomination>
-template<typename T, typename>
+template<typename T>
 constexpr Duration<Denomination> Duration<Denomination>::operator*(T rhs) const noexcept
 {
+    static_assert(std::is_arithmetic_v<T>, "'T' type must be arithmetic fundamental type");
+
     Duration tmp = *this;
     tmp.m_count *= rhs;
     return tmp;
 }
 
 template<class Denomination>
-template<typename T, typename>
+template<typename T>
 constexpr Duration<Denomination> Duration<Denomination>::operator/(T rhs) const noexcept
 {
+    static_assert(std::is_arithmetic_v<T>, "'T' must be arithmetic fundamental type");
+
     Duration tmp = *this;
     tmp.m_count /= rhs;
     return tmp;
@@ -245,17 +249,21 @@ constexpr Duration<Denomination>& Duration<Denomination>::operator%=(intmax_t rh
 }
 
 template<class Denomination>
-template<typename T, typename>
+template<typename T>
 constexpr Duration<Denomination>& Duration<Denomination>::operator*=(T rhs) noexcept
 {
+    static_assert(std::is_arithmetic_v<T>, "'T' type must be arithmetic fundamental type");
+
     m_count *= rhs;
     return *this;
 }
 
 template<class Denomination>
-template<typename T, typename>
+template<typename T>
 constexpr Duration<Denomination>& Duration<Denomination>::operator/=(T rhs) noexcept
 {
+    static_assert(std::is_arithmetic_v<T>, "'T' type must be arithmetic fundamental type");
+
     m_count /= rhs;
     return *this;
 }
@@ -289,7 +297,7 @@ static constexpr Duration<Denomination2> duration_cast(Duration<Denomination1> c
     constexpr math::Ratio conversion = Conversion::Value();
 
     ResultRep rep_count    = static_cast<ResultRep>(rhs.m_count);
-    ResultRep result_count = rhs.m_count * conversion;
+    ResultRep result_count = rep_count * conversion;
 
     return Duration<Denomination2>(result_count);
 }

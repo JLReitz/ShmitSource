@@ -21,21 +21,21 @@ public:
     constexpr Ratio(Ratio&& rhs);
 
     static constexpr void  Align(Ratio& rhs, Ratio& lhs) noexcept;
-    static constexpr Ratio Invert(Ratio ratio) noexcept;
+    static constexpr Ratio Invert(Ratio const& ratio) noexcept;
 
     constexpr operator int() const noexcept;
 
-    constexpr bool operator==(Ratio rhs) const noexcept;
-    constexpr bool operator!=(Ratio rhs) const noexcept;
+    constexpr bool operator==(Ratio const& rhs) const noexcept;
+    constexpr bool operator!=(Ratio const& rhs) const noexcept;
 
     constexpr bool operator>(intmax_t rhs) const noexcept;
-    constexpr bool operator>(Ratio rhs) const noexcept;
+    constexpr bool operator>(Ratio const& rhs) const noexcept;
     constexpr bool operator>=(intmax_t rhs) const noexcept;
-    constexpr bool operator>=(Ratio rhs) const noexcept;
+    constexpr bool operator>=(Ratio const& rhs) const noexcept;
     constexpr bool operator<(intmax_t rhs) const noexcept;
-    constexpr bool operator<(Ratio rhs) const noexcept;
+    constexpr bool operator<(Ratio const& rhs) const noexcept;
     constexpr bool operator<=(intmax_t rhs) const noexcept;
-    constexpr bool operator<=(Ratio rhs) const noexcept;
+    constexpr bool operator<=(Ratio const& rhs) const noexcept;
 
     constexpr Ratio operator+() const noexcept;
     constexpr Ratio operator-() const noexcept;
@@ -45,36 +45,36 @@ public:
     constexpr Ratio operator--() noexcept;
     constexpr Ratio operator--(int) noexcept;
 
-    constexpr Ratio  operator+(Ratio rhs) const noexcept;
+    constexpr Ratio  operator+(Ratio const& rhs) const noexcept;
     constexpr Ratio& operator+=(intmax_t rhs) noexcept;
     constexpr Ratio& operator+=(Ratio rhs) noexcept;
 
-    constexpr Ratio  operator-(Ratio rhs) const noexcept;
+    constexpr Ratio  operator-(Ratio const& rhs) const noexcept;
     constexpr Ratio& operator-=(intmax_t rhs) noexcept;
     constexpr Ratio& operator-=(Ratio rhs) noexcept;
 
-    constexpr Ratio  operator*(Ratio rhs) const noexcept;
+    constexpr Ratio  operator*(Ratio const& rhs) const noexcept;
     constexpr Ratio& operator*=(intmax_t rhs) noexcept;
-    constexpr Ratio& operator*=(Ratio rhs) noexcept;
+    constexpr Ratio& operator*=(Ratio const& rhs) noexcept;
 
-    constexpr Ratio  operator/(Ratio rhs) const noexcept;
+    constexpr Ratio  operator/(Ratio const& rhs) const noexcept;
     constexpr Ratio& operator/=(intmax_t rhs) noexcept;
-    constexpr Ratio& operator/=(Ratio rhs) noexcept;
+    constexpr Ratio& operator/=(Ratio const& rhs) noexcept;
 
     constexpr Ratio& operator=(Ratio const& rhs);
     constexpr Ratio& operator=(Ratio&& rhs);
 
-    friend constexpr intmax_t operator+(intmax_t lhs, Ratio rhs);
-    friend constexpr Ratio    operator+(Ratio lhs, intmax_t rhs);
+    friend constexpr intmax_t operator+(intmax_t lhs, Ratio const& rhs);
+    friend constexpr Ratio    operator+(Ratio const& lhs, intmax_t rhs);
 
-    friend constexpr intmax_t operator-(intmax_t lhs, Ratio rhs);
-    friend constexpr Ratio    operator-(Ratio lhs, intmax_t rhs);
+    friend constexpr intmax_t operator-(intmax_t lhs, Ratio const& rhs);
+    friend constexpr Ratio    operator-(Ratio const& lhs, intmax_t rhs);
 
-    friend constexpr intmax_t operator*(intmax_t lhs, Ratio rhs);
-    friend constexpr Ratio    operator*(Ratio lhs, intmax_t rhs);
+    friend constexpr intmax_t operator*(intmax_t lhs, Ratio const& rhs);
+    friend constexpr Ratio    operator*(Ratio const& lhs, intmax_t rhs);
 
-    friend constexpr intmax_t operator/(intmax_t lhs, Ratio rhs);
-    friend constexpr Ratio    operator/(Ratio lhs, intmax_t rhs);
+    friend constexpr intmax_t operator/(intmax_t lhs, Ratio const& rhs);
+    friend constexpr Ratio    operator/(Ratio const& lhs, intmax_t rhs);
 
     template<intmax_t Numerator, intmax_t Denominator>
     friend constexpr Ratio create_ratio();
@@ -254,23 +254,31 @@ constexpr void Ratio::Align(Ratio& rhs, Ratio& lhs) noexcept // Static method
     }
 }
 
-constexpr Ratio Ratio::Invert(Ratio ratio) noexcept // Static method
+constexpr Ratio Ratio::Invert(Ratio const& ratio) noexcept // Static method
 {
-    // Swap numerator and denominator
-    intmax_t pre_swap_num = ratio.num;
-
-    ratio.num = ratio.den;
-    ratio.den = pre_swap_num;
+    Ratio inverted;
+    inverted.num = ratio.den;
+    inverted.den = ratio.num;
 
     // Simplify sign representation since the numerator value is now a bottom
-    ratio.SimplifySign();
-    return ratio;
+    inverted.SimplifySign();
+    return inverted;
 }
 
 constexpr Ratio::operator int() const noexcept
 {
     // They asked for it, we shall provide
     return num / den;
+}
+
+constexpr bool Ratio::operator==(Ratio const& rhs) const noexcept
+{
+    return (num == rhs.num) && (den == rhs.den);
+}
+
+constexpr bool Ratio::operator!=(Ratio const& rhs) const noexcept
+{
+    return !(*this == rhs);
 }
 
 constexpr bool Ratio::operator>(intmax_t rhs) const noexcept
@@ -280,7 +288,7 @@ constexpr bool Ratio::operator>(intmax_t rhs) const noexcept
     return (whole_part > rhs);
 }
 
-constexpr bool Ratio::operator>(Ratio rhs) const noexcept
+constexpr bool Ratio::operator>(Ratio const& rhs) const noexcept
 {
     intmax_t right_cross = num * rhs.den;
     intmax_t left_cross  = den * rhs.num;
@@ -295,7 +303,7 @@ constexpr bool Ratio::operator>=(intmax_t rhs) const noexcept
     return (whole_part >= rhs);
 }
 
-constexpr bool Ratio::operator>=(Ratio rhs) const noexcept
+constexpr bool Ratio::operator>=(Ratio const& rhs) const noexcept
 {
     intmax_t right_cross = num * rhs.den;
     intmax_t left_cross  = den * rhs.num;
@@ -308,7 +316,7 @@ constexpr bool Ratio::operator<(intmax_t rhs) const noexcept
     return !(*this >= rhs);
 }
 
-constexpr bool Ratio::operator<(Ratio rhs) const noexcept
+constexpr bool Ratio::operator<(Ratio const& rhs) const noexcept
 {
     return !(*this >= rhs);
 }
@@ -318,7 +326,7 @@ constexpr bool Ratio::operator<=(intmax_t rhs) const noexcept
     return !(*this > rhs);
 }
 
-constexpr bool Ratio::operator<=(Ratio rhs) const noexcept
+constexpr bool Ratio::operator<=(Ratio const& rhs) const noexcept
 {
     return !(*this > rhs);
 }
@@ -366,7 +374,7 @@ constexpr Ratio Ratio::operator--(int) noexcept
     return *this;
 }
 
-constexpr Ratio Ratio::operator+(Ratio rhs) const noexcept
+constexpr Ratio Ratio::operator+(Ratio const& rhs) const noexcept
 {
     Ratio tmp = *this;
     tmp += rhs;
@@ -383,13 +391,12 @@ constexpr Ratio& Ratio::operator+=(intmax_t rhs) noexcept
 constexpr Ratio& Ratio::operator+=(Ratio rhs) noexcept
 {
     Align(*this, rhs);
-
     num += rhs.num;
 
     return *this;
 }
 
-constexpr Ratio Ratio::operator-(Ratio rhs) const noexcept
+constexpr Ratio Ratio::operator-(Ratio const& rhs) const noexcept
 {
     Ratio tmp = *this;
     tmp -= rhs;
@@ -406,13 +413,12 @@ constexpr Ratio& Ratio::operator-=(intmax_t rhs) noexcept
 constexpr Ratio& Ratio::operator-=(Ratio rhs) noexcept
 {
     Align(*this, rhs);
-
     num -= rhs.num;
 
     return *this;
 }
 
-constexpr Ratio Ratio::operator*(Ratio rhs) const noexcept
+constexpr Ratio Ratio::operator*(Ratio const& rhs) const noexcept
 {
     Ratio tmp = *this;
     tmp *= rhs;
@@ -426,7 +432,7 @@ constexpr Ratio& Ratio::operator*=(intmax_t rhs) noexcept
     return *this;
 }
 
-constexpr Ratio& Ratio::operator*=(Ratio rhs) noexcept
+constexpr Ratio& Ratio::operator*=(Ratio const& rhs) noexcept
 {
     num *= rhs.num;
     den *= rhs.den;
@@ -434,7 +440,7 @@ constexpr Ratio& Ratio::operator*=(Ratio rhs) noexcept
     return *this;
 }
 
-constexpr Ratio Ratio::operator/(Ratio rhs) const noexcept
+constexpr Ratio Ratio::operator/(Ratio const& rhs) const noexcept
 {
     Ratio tmp = *this;
     tmp /= rhs;
@@ -448,7 +454,7 @@ constexpr Ratio& Ratio::operator/=(intmax_t rhs) noexcept
     return *this;
 }
 
-constexpr Ratio& Ratio::operator/=(Ratio rhs) noexcept
+constexpr Ratio& Ratio::operator/=(Ratio const& rhs) noexcept
 {
     Ratio rhs_inverted = Invert(rhs);
 
@@ -500,49 +506,49 @@ constexpr Ratio StaticRatio<Numerator, Denominator>::Value() noexcept // Static 
 //  External operator overload definitions          ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-constexpr intmax_t operator+(intmax_t lhs, Ratio rhs)
+constexpr intmax_t operator+(intmax_t lhs, Ratio const& rhs)
 {
     Ratio result = Ratio(lhs) + rhs;
     return result;
 }
 
-constexpr Ratio operator+(Ratio lhs, intmax_t rhs)
+constexpr Ratio operator+(Ratio const& lhs, intmax_t rhs)
 {
     Ratio result = lhs + Ratio(rhs);
     return result;
 }
 
-constexpr intmax_t operator-(intmax_t lhs, Ratio rhs)
+constexpr intmax_t operator-(intmax_t lhs, Ratio const& rhs)
 {
     Ratio result = Ratio(lhs) - rhs;
     return result;
 }
 
-constexpr Ratio operator-(Ratio lhs, intmax_t rhs)
+constexpr Ratio operator-(Ratio const& lhs, intmax_t rhs)
 {
     Ratio result = lhs - Ratio(rhs);
     return result;
 }
 
-constexpr intmax_t operator*(intmax_t lhs, Ratio rhs)
+constexpr intmax_t operator*(intmax_t lhs, Ratio const& rhs)
 {
     Ratio result = Ratio(lhs) * rhs;
     return result;
 }
 
-constexpr Ratio operator*(Ratio lhs, intmax_t rhs)
+constexpr Ratio operator*(Ratio const& lhs, intmax_t rhs)
 {
     Ratio result = lhs * Ratio(rhs);
     return result;
 }
 
-constexpr intmax_t operator/(intmax_t lhs, Ratio rhs)
+constexpr intmax_t operator/(intmax_t lhs, Ratio const& rhs)
 {
     Ratio result = Ratio(lhs) / rhs;
     return result;
 }
 
-constexpr Ratio operator/(Ratio lhs, intmax_t rhs)
+constexpr Ratio operator/(Ratio const& lhs, intmax_t rhs)
 {
     Ratio result = lhs / Ratio(rhs);
     return result;
