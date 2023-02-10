@@ -53,7 +53,7 @@ void StaticLogging::SetThreshold(Level threshold) // Static method
 
 void StaticLogging::LogEntry(Level level, char const* id, char const* context, char const* data_str) // Static method
 {
-    m_logger.LogEntry(Type::eDiagnostics, level, id, context, data_str);
+    m_logger.Post(Type::eDiagnostics, level, id, context, data_str);
 }
 
 } // namespace data

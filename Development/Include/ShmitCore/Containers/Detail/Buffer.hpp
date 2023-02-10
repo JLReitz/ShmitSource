@@ -1,9 +1,10 @@
 #pragma once
 
-#include <ShmitCore/Logging/Diagnostics/Logging.hpp>
+#include <ShmitCore/Logging/Diagnostics.hpp>
 #include <ShmitCore/Types/StdTypes.hpp>
 #include <ShmitCore/Types/Traits/Named.hpp>
 
+#include <iterator>
 #include <limits>
 
 namespace shmit
@@ -22,35 +23,6 @@ namespace detail
 class Buffer : public Named
 {
 public:
-    DIAGNOSTIC_CONTEXT(Buffer)
-    DIAGNOSTIC_POSIT(constructing, shmit::log::Level::eTrace)
-    DIAGNOSTIC_POSIT(destructing, shmit::log::Level::eTrace)
-
-    DIAGNOSTIC_DATA_POSIT(at_capacity, shmit::log::Level::eDebug, shmit::log::diagnostics::Times())
-
-    DIAGNOSTIC_DATA_POSIT(assign, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-
-    DIAGNOSTIC_DATA_POSIT(insert_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(insert_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(insert_random, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-
-    DIAGNOSTIC_DATA_POSIT(emplace_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(emplace_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(emplace_random, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-
-    DIAGNOSTIC_DATA_POSIT(pop_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(pop_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(erase_front, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(erase_back, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(erase_random, shmit::log::Level::eTrace, shmit::log::diagnostics::Times())
-
-    DIAGNOSTIC_DATA_POSIT(front_overflow, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(back_overflow, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(overfill, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(truncation, shmit::log::Level::eWarning, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(bad_alloc, shmit::log::Level::eError, shmit::log::diagnostics::Times())
-    DIAGNOSTIC_DATA_POSIT(bad_move, shmit::log::Level::eError, shmit::log::diagnostics::Times())
-
     using difference_type = int;
     using size_type       = size_t;
 
@@ -58,7 +30,37 @@ public:
 
 protected:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //  Iterator base classes ////////////////////////////////////////////////////////////////////////////////////
+    //  Logging context and IDs         ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ESTABLISH_LOGGING_CONTEXT(Buffer)
+
+    struct log_ids
+    {
+        static constexpr char const* kAssign = "assign";
+
+        static constexpr char const* kInsertFront  = "insert-front";
+        static constexpr char const* kInsertBack   = "insert-back";
+        static constexpr char const* kInsertRandom = "insert-random";
+
+        static constexpr char const* kEmplaceFront  = "emplace-front";
+        static constexpr char const* kEmplaceBack   = "emplace-back";
+        static constexpr char const* kEmplaceRandom = "emplace-random";
+
+        static constexpr char const* kPopFront    = "pop-front";
+        static constexpr char const* kPopBack     = "pop-back";
+        static constexpr char const* kEraseFront  = "erase-front";
+        static constexpr char const* kEraseBack   = "erase-back";
+        static constexpr char const* kEraseRandom = "erase-random";
+
+        static constexpr char const* kFrontOverflow = "front-overflow";
+        static constexpr char const* kBackOverflow  = "back-overflow";
+        static constexpr char const* kOverfill      = "overfill";
+        static constexpr char const* kTruncation    = "truncation";
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //  Iterator base classes       ////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**!
@@ -69,9 +71,9 @@ protected:
     class Iterator
     {
     public:
-        DIAGNOSTIC_CONTEXT(Buffer::Iterator)
-        DIAGNOSTIC_POSIT(increment, shmit::log::Level::eTrace)
-        DIAGNOSTIC_POSIT(decrement, shmit::log::Level::eTrace)
+        // DIAGNOSTIC_CONTEXT(Buffer::Iterator)
+        // DIAGNOSTIC_POSIT(increment, shmit::log::Level::eTrace)
+        // DIAGNOSTIC_POSIT(decrement, shmit::log::Level::eTrace)
 
         Iterator() = delete;
         Iterator(Iterator const& rhs) noexcept;
@@ -127,9 +129,9 @@ protected:
     class ConstIterator
     {
     public:
-        DIAGNOSTIC_CONTEXT(Buffer::ConstIterator)
-        DIAGNOSTIC_POSIT(increment, shmit::log::Level::eTrace)
-        DIAGNOSTIC_POSIT(decrement, shmit::log::Level::eTrace)
+        // DIAGNOSTIC_CONTEXT(Buffer::ConstIterator)
+        // DIAGNOSTIC_POSIT(increment, shmit::log::Level::eTrace)
+        // DIAGNOSTIC_POSIT(decrement, shmit::log::Level::eTrace)
 
         ConstIterator() = delete;
 
@@ -181,6 +183,10 @@ protected:
     };
 
 public:
+    /**
+     * @brief Default constructor is disabled
+     *
+     */
     Buffer() = delete;
 
     /**!
@@ -246,8 +252,7 @@ protected:
 
     inline size_type RollIndexBackward(size_type index, size_type steps) const noexcept
     {
-        return (m_max_element_count) ? ((index < steps) ? m_max_element_count - (steps - index) : index - steps) :
-                                       index;
+        return (m_max_element_count) ? ((index < steps) ? m_max_element_count - (steps - index) : index - steps) : index;
     }
 
     void          IncrementBounded(Iterator& iterator, size_type steps) const;
@@ -367,16 +372,13 @@ public:
     friend ConstBufferIteratorT<TArg> operator+(ConstBufferIteratorT<TArg> const& lhs, difference_type rhs) noexcept;
 
     template<typename TArg>
-    friend ConstBufferIteratorT<TArg> operator+(const difference_type             lhs,
-                                                ConstBufferIteratorT<TArg> const& rhs) noexcept;
+    friend ConstBufferIteratorT<TArg> operator+(const difference_type lhs, ConstBufferIteratorT<TArg> const& rhs) noexcept;
 
     template<typename TArg>
-    friend difference_type operator-(ConstBufferIteratorT<TArg> const& lhs,
-                                     ConstBufferIteratorT<TArg> const& rhs) noexcept;
+    friend difference_type operator-(ConstBufferIteratorT<TArg> const& lhs, ConstBufferIteratorT<TArg> const& rhs) noexcept;
 
     template<typename TArg>
-    friend ConstBufferIteratorT<TArg> operator-(ConstBufferIteratorT<TArg> const& lhs,
-                                                const difference_type             rhs) noexcept;
+    friend ConstBufferIteratorT<TArg> operator-(ConstBufferIteratorT<TArg> const& lhs, const difference_type rhs) noexcept;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -631,8 +633,7 @@ Buffer::difference_type operator-(ConstBufferIteratorT<TArg> const& lhs, ConstBu
     if (lhs < rhs)
         return 0;
 
-    Buffer::difference_type diff =
-        (signed)(lhs.m_buffer->WrapIndex(lhs.m_offset) - rhs.m_buffer->WrapIndex(rhs.m_offset));
+    Buffer::difference_type diff = (signed)(lhs.m_buffer->WrapIndex(lhs.m_offset) - rhs.m_buffer->WrapIndex(rhs.m_offset));
     return diff;
 }
 

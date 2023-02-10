@@ -3,12 +3,8 @@
 #include "Detail/Buffer.hpp"
 
 #include <ShmitCore/Help/Integer.hpp>
-#include <ShmitCore/Logging/Diagnostics/Logging.hpp>
-#include <ShmitCore/Logging/Events/Logging.hpp>
-#include <ShmitCore/Types/Traits/Named.hpp>
 
 #include <algorithm>
-#include <iterator>
 #include <type_traits>
 
 namespace shmit
@@ -41,7 +37,7 @@ public:
      */
     Buffer() noexcept;
 
-    /**
+    /**!
      * @brief Constructs an unallocated Buffer and assigns the Allocator instance
      *
      * @param[in][in] allocator
@@ -668,6 +664,9 @@ private:
     void MoveAssignWithAllocatorPropogation(Buffer&& rhs, std::false_type f) noexcept;
 
     Allocator m_allocator; //!< Each Buffer gets its own individual Allocator!
+
+    // Logging context is inherited from detail::Buffer, along with logging IDs
+    INHERIT_LOGGING_CONTEXT()
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -677,15 +676,17 @@ private:
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer() noexcept : detail::Buffer(sizeof(T))
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
 }
 
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(Allocator const& allocator) noexcept : detail::Buffer(sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
 }
 
 template<typename T, class Allocator>
-Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size) noexcept : Buffer()
+Buffer<T, Allocator>::Buffer(size_type buffer_size) noexcept : Buffer()
 {
     // Only continue if the given buffer size is > 0
     if (buffer_size > 0)
@@ -702,6 +703,8 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(size_type buffer_size, Allocator const& allocator) noexcept
     : detail::Buffer(sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
+
     // Only continue if the given buffer size is > 0
     if (buffer_size > 0)
     {
@@ -724,7 +727,10 @@ Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size, T cons
         // Construct elements in the buffer
         // Need to typecast 'm_start_address' from void* before performing pointer arithmetic
         for (T& e : *this)
-            alloc_traits::construct(m_allocator, (T*)&e, init);
+        {
+            Allocator a(m_allocator);
+            alloc_traits::construct(a, &e, init);
+        }
 
         // Buffer is full
         AtCapacity();
@@ -732,10 +738,11 @@ Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size, T cons
 }
 
 template<typename T, class Allocator>
-Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size, T const& init,
-                             Allocator const& allocator) noexcept
+Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size, T const& init, Allocator const& allocator) noexcept
     : detail::Buffer(sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
+
     // Only continue if the given buffer size is > 0
     if (buffer_size > 0)
     {
@@ -750,18 +757,22 @@ Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>::size_type buffer_size, T cons
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(char const* name) noexcept : detail::Buffer(name, sizeof(T))
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
 }
 
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(char const* name, Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
 }
 
 template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(char const* name, Buffer<T, Allocator>::size_type buffer_size) noexcept
     : detail::Buffer(name, sizeof(T))
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
+
     // Only continue if the given buffer size is > 0
     if (buffer_size > 0)
     {
@@ -795,6 +806,8 @@ Buffer<T, Allocator>::Buffer(char const* name, Buffer<T, Allocator>::size_type b
                              Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
+
     // Only continue if the given buffer size is > 0
     if (buffer_size > 0)
     {
@@ -828,6 +841,8 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(std::initializer_list<T> il, Allocator const& allocator) noexcept
     : detail::Buffer(sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
+
     // Only continue if the list size is > 0
     size_type list_size = il.size();
     if (list_size > 0)
@@ -854,6 +869,8 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(char const* name, std::initializer_list<T> il, Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
+
     // Only continue if the list size is > 0
     size_type list_size = il.size();
     if (list_size > 0)
@@ -880,7 +897,7 @@ Buffer<T, Allocator>::Buffer(IteratorType i, IteratorType j) noexcept : Buffer(t
 template<typename T, class Allocator>
 template<typename IteratorType, typename>
 Buffer<T, Allocator>::Buffer(char const* name, IteratorType i, IteratorType j) noexcept
-    : Buffer(name, std::min((j - i), 0u))
+    : Buffer(name, std::max((j - i), 0u))
 {
     if (m_start_address)
         assign(i, j);
@@ -891,8 +908,10 @@ template<typename IteratorType, typename>
 Buffer<T, Allocator>::Buffer(char const* name, IteratorType i, IteratorType j, Allocator const& allocator) noexcept
     : detail::Buffer(name, sizeof(T)), m_allocator {allocator}
 {
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kConstructing)
+
     // Only continue if the range size is > 0
-    size_type range_size = std::min((j - i), 0u);
+    size_type range_size = j - i;
     if (range_size > 0)
     {
         // Allocate storage for the container
@@ -911,7 +930,7 @@ Buffer<T, Allocator>::Buffer(Buffer<T, Allocator> const& rhs) noexcept
     : detail::Buffer(rhs.GetName(), sizeof(T)),
       m_allocator(alloc_traits::select_on_container_copy_construction(rhs.m_allocator))
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
+    LOG_TRACE_DIAGNOSTICS_STRING(shmit::log::ids::kConstructing, "Copy")
     CopyBuffer(rhs);
 }
 
@@ -919,14 +938,14 @@ template<typename T, class Allocator>
 Buffer<T, Allocator>::Buffer(Buffer<T, Allocator>&& rhs) noexcept
     : detail::Buffer(rhs.GetName(), sizeof(T)), m_allocator(std::move(rhs.m_allocator))
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
+    LOG_TRACE_DIAGNOSTICS_STRING(shmit::log::ids::kConstructing, "Move")
     MoveMemoryContents(std::forward<detail::Buffer&&>(rhs));
 }
 
 template<typename T, class Allocator>
 Buffer<T, Allocator>::~Buffer() noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(destructing)
+    LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kDestructing)
     DeallocateBuffer();
 }
 
@@ -943,7 +962,7 @@ void Buffer<T, Allocator>::assign(Buffer<T, Allocator>::size_type n, T const& va
     if (!n)
         return;
 
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(assign, shmit::log::diagnostics::Print("Count:%u", n));
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kAssign, "Count:%llu", n)
 
     // Guard against overfill, then fill in the Buffer
     n                                       = OverfillGuard(n);
@@ -974,7 +993,7 @@ void Buffer<T, Allocator>::assign(IteratorType i, IteratorType j) noexcept
     if (!range_size)
         return;
 
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(assign, shmit::log::diagnostics::Print("Count:%u", range_size));
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kAssign, "Count:%llu", range_size)
 
     // Guard against overfills
     size_type corrected_size      = OverfillGuard(range_size);
@@ -996,12 +1015,6 @@ void Buffer<T, Allocator>::assign(IteratorType i, IteratorType j) noexcept
 template<typename T, class Allocator>
 T& Buffer<T, Allocator>::at(Buffer<T, Allocator>::size_type index) noexcept
 {
-    // Check for empty or out-of-bounds conditions
-    if (empty() || (index >= m_max_element_count))
-    {
-        // TODO Throw exception or enter hard fault trap
-    }
-
     iterator it = begin();
     std::advance(it, index);
     return *it;
@@ -1010,12 +1023,6 @@ T& Buffer<T, Allocator>::at(Buffer<T, Allocator>::size_type index) noexcept
 template<typename T, class Allocator>
 T const& Buffer<T, Allocator>::at(Buffer<T, Allocator>::size_type index) const noexcept
 {
-    // Check for empty or out-of-bounds conditions
-    if (empty() || (index >= m_max_element_count))
-    {
-        // TODO Post diagnostic posit
-    }
-
     const_iterator it = cbegin();
     std::advance(it, index);
     return *it;
@@ -1092,7 +1099,7 @@ template<typename... ValueTypes>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::emplace(typename Buffer<T, Allocator>::iterator position,
                                                                       ValueTypes&&... args) noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_random)
+    LOG_TRACE_DIAGNOSTICS(log_ids::kEmplaceRandom)
     PrepareForRandomPlacement(position, 1);
     alloc_traits::construct(m_allocator, &(*position), std::forward<ValueTypes>(args)...);
 
@@ -1103,7 +1110,7 @@ template<typename T, class Allocator>
 template<typename... ValueTypes>
 void Buffer<T, Allocator>::emplace_back(ValueTypes&&... args) noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_back)
+    LOG_TRACE_DIAGNOSTICS(log_ids::kEmplaceBack)
 
     // Emplace position is the back of the Buffer, unless the buffer is full
     iterator emplace_position = m_back;
@@ -1116,7 +1123,7 @@ void Buffer<T, Allocator>::emplace_back(ValueTypes&&... args) noexcept
     // Detect overflow and capacity
     if (emplace_position == m_front)
     {
-        LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(back_overflow, shmit::log::diagnostics::Print("%s", "Count:1"))
+        LOG_TRACE_DIAGNOSTICS_STRING(log_ids::kBackOverflow, "Count:1")
         m_front = IncrementBoundless(m_front, 1);
         AtCapacity();
     }
@@ -1131,7 +1138,7 @@ template<typename T, class Allocator>
 template<typename... ValueTypes>
 void Buffer<T, Allocator>::emplace_front(ValueTypes&&... args) noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(emplace_front)
+    LOG_TRACE_DIAGNOSTICS(log_ids::kEmplaceFront)
 
     // Emplace position is 1 before the front of the Buffer, always
     iterator emplace_position = DecrementBoundless(m_front, 1);
@@ -1142,7 +1149,7 @@ void Buffer<T, Allocator>::emplace_front(ValueTypes&&... args) noexcept
     // Detect overflow and capacity
     if (emplace_position == m_back)
     {
-        LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(front_overflow, shmit::log::diagnostics::Print("%s", "Count:1"))
+        LOG_TRACE_DIAGNOSTICS_STRING(log_ids::kFrontOverflow, "Count:1")
         m_back = DecrementBoundless(m_back, 1);
         AtCapacity();
     }
@@ -1170,8 +1177,7 @@ typename Buffer<T, Allocator>::const_iterator Buffer<T, Allocator>::end() const 
 }
 
 template<typename T, class Allocator>
-typename Buffer<T, Allocator>::iterator
-    Buffer<T, Allocator>::erase(typename Buffer<T, Allocator>::iterator position) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::erase(typename Buffer<T, Allocator>::iterator position) noexcept
 {
     // Call the appropriate erase subroutine based on position's relative location to the front and back
     if (position == m_front)
@@ -1249,8 +1255,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
 
 template<typename T, class Allocator>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Buffer<T, Allocator>::iterator position,
-                                                                     Buffer<T, Allocator>::size_type         n,
-                                                                     T const& value) noexcept
+                                                                     Buffer<T, Allocator>::size_type n, T const& value) noexcept
 {
     // Guard against a count of 0
     if (!n)
@@ -1302,7 +1307,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::insert(typename Bu
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::pop_back() noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(pop_back)
+    LOG_TRACE_DIAGNOSTICS(log_ids::kPopBack)
 
     // Check for empty condition
     if (!empty())
@@ -1321,7 +1326,7 @@ void Buffer<T, Allocator>::pop_back() noexcept
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::pop_front() noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(pop_front)
+    LOG_TRACE_DIAGNOSTICS(log_ids::kPopFront)
 
     // Check for empty condition
     if (!empty())
@@ -1417,7 +1422,7 @@ void Buffer<T, Allocator>::swap(Buffer& rhs) noexcept
 template<typename T, class Allocator>
 Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(Buffer<T, Allocator> const& rhs) noexcept
 {
-    // Tag-dispatch the appropriate routine, selected at compile time
+    // LogId-dispatch the appropriate routine, selected at compile time
     CopyAssignWithAllocatorPropogation(rhs, typename alloc_traits::propagate_on_container_copy_assignment {});
 
     return *this;
@@ -1426,7 +1431,7 @@ Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(Buffer<T, Allocator> const
 template<typename T, class Allocator>
 Buffer<T, Allocator>& Buffer<T, Allocator>::operator=(Buffer<T, Allocator>&& rhs) noexcept
 {
-    // Tag-dispatch the appropriate routine, selected at compile time
+    // LogId-dispatch the appropriate routine, selected at compile time
     MoveAssignWithAllocatorPropogation(std::forward<Buffer<T, Allocator>>(rhs),
                                        typename alloc_traits::propagate_on_container_move_assignment {});
 
@@ -1469,20 +1474,18 @@ T const& Buffer<T, Allocator>::operator[](Buffer<T, Allocator>::size_type index)
 template<typename T, class Allocator>
 T* Buffer<T, Allocator>::AllocateBuffer(Buffer<T, Allocator>::size_type n) noexcept
 {
-    // Guard against Buffer sizes larger than the allowable limit
-    if (n > kMaxAllowableSize)
-        n = kMaxAllowableSize;
-
     T* bufferPtr = alloc_traits::allocate(m_allocator, n);
-    if (bufferPtr == nullptr)
-        LOG_MEMBER_DIAGNOSTIC_POSIT(bad_alloc)
+
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(shmit::log::ids::kAlllocated, "Addr:%p,Count:%llu", (void*)bufferPtr, n);
+
+    if (!bufferPtr)
+        LOG_WARNING_DIAGNOSTICS(shmit::log::ids::kBadAllocation)
 
     return bufferPtr;
 }
 
 template<typename T, class Allocator>
-void Buffer<T, Allocator>::CopyAssignWithAllocatorPropogation(Buffer<T, Allocator> const& rhs,
-                                                              std::true_type              t) noexcept
+void Buffer<T, Allocator>::CopyAssignWithAllocatorPropogation(Buffer<T, Allocator> const& rhs, std::true_type t) noexcept
 {
     // Deallocate current buffer, the lhs allocator may not be able to later
     DeallocateBuffer();
@@ -1493,8 +1496,7 @@ void Buffer<T, Allocator>::CopyAssignWithAllocatorPropogation(Buffer<T, Allocato
 }
 
 template<typename T, class Allocator>
-void Buffer<T, Allocator>::CopyAssignWithAllocatorPropogation(Buffer<T, Allocator> const& rhs,
-                                                              std::false_type             f) noexcept
+void Buffer<T, Allocator>::CopyAssignWithAllocatorPropogation(Buffer<T, Allocator> const& rhs, std::false_type f) noexcept
 {
     if (m_max_element_count != rhs.m_max_element_count)
         resize(rhs.m_max_element_count);
@@ -1527,14 +1529,13 @@ void Buffer<T, Allocator>::DeallocateBuffer() noexcept
     // Only continue if the start address is valid
     if (m_start_address)
     {
-        // Destroy only elements that are initialized and stored in the buffer
-        if (!empty())
-        {
-            for (T& e : *this)
-                alloc_traits::destroy(m_allocator, (T*)(&e));
+        LOG_TRACE_DIAGNOSTICS(shmit::log::ids::kDeallocating)
 
-            clear(); // Reset in case Buffer is still in use
-        }
+        // Destroy only elements that are initialized and stored in the buffer
+        for (T& e : *this)
+            alloc_traits::destroy(m_allocator, (T*)(&e));
+
+        clear(); // Reset in case Buffer is still in use
 
         // Deallocate buffer
         // Need to typecast 'm_start_address' from void*
@@ -1549,7 +1550,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::EraseFront(Buffer<
 
     if (n)
     {
-        LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(erase_front, shmit::log::diagnostics::Print("Count:%u", n))
+        LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kEraseFront, "Count:%llu", n)
 
         // Guard against overfill, even though it's technically the opposite
         size_type current_size = size();
@@ -1574,10 +1575,10 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::EraseFront(Buffer<
 template<typename T, class Allocator>
 void Buffer<T, Allocator>::EraseBack(Buffer<T, Allocator>::size_type n)
 {
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(erase_back, shmit::log::diagnostics::Print("Count:%u", n))
-
     if (n)
     {
+        LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kEraseBack, "Count:%llu", n)
+
         // Guard against overfill, even though it's technically the opposite
         size_type current_size = size();
         if (n > current_size)
@@ -1604,27 +1605,33 @@ void Buffer<T, Allocator>::EraseBack(Buffer<T, Allocator>::size_type n)
 }
 
 template<typename T, class Allocator>
-typename Buffer<T, Allocator>::iterator
-    Buffer<T, Allocator>::EraseSection(typename Buffer<T, Allocator>::iterator start, Buffer<T, Allocator>::size_type n)
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::EraseSection(typename Buffer<T, Allocator>::iterator start,
+                                                                           Buffer<T, Allocator>::size_type n)
 {
     if (n)
     {
         size_type start_wrapped      = (unsigned)(start - begin());
         size_type distance_from_back = size() - start_wrapped;
 
-        LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(erase_random,
-                                                shmit::log::diagnostics::Print("Count:%u,At:%u", n, start_wrapped))
+        LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kEraseRandom, "Pos:%d,Count:%llu", start_wrapped, n)
+
+        // Guard against overfill, even though it's technically the opposite
+        size_type current_size = size();
+        if (n > current_size)
+            n = current_size;
 
         // Determine if erasure will extend to the back of the buffer
         if (n >= distance_from_back)
         {
             // Sneaky call out to EraseBack() for the heavy lifting
-            // Using 'distance_from_back' so that we are not erasing more elements than the Buffer currently contains
+            // Using 'distance_from_back' so that we are not erasing more
+            // elements than the Buffer currently contains
             EraseBack(distance_from_back);
             return end();
         }
 
-        // Else, there are elements behind the erasure zone which need to be shifted up in order to be preserved
+        // Else, there are elements behind the erasure zone which need to be
+        // shifted up in order to be preserved
 
         // Destroy elements in erasure zone
         iterator erase_curr = start;
@@ -1635,13 +1642,15 @@ typename Buffer<T, Allocator>::iterator
             erase_curr++;
         }
 
-        // From the end of the erasure zone to the back of the Buffer is the source zone for shifting
-        // The destination is the zone that was just erased
-        // ShiftContents() will return an iterator equivalent to 'erase_end', so we ignore it
+        // From the end of the erasure zone to the back of the Buffer is the
+        // source zone for shifting The destination is the zone that was just
+        // erased ShiftContents() will return an iterator equivalent to
+        // 'erase_end', so we ignore it
         size_type        num_preserved = distance_from_back - n;
         Buffer::Iterator dest_end      = ShiftContents(erase_end, start, num_preserved);
 
-        // Update the back of the Buffer to track the end of the shifted content and clear full flag
+        // Update the back of the Buffer to track the end of the shifted content
+        // and clear full flag
         m_back    = dest_end;
         m_is_full = false;
     }
@@ -1657,7 +1666,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillInsert(Buffer<
                                                                          Buffer<T, Allocator>::size_type n,
                                                                          ValueType&&                     value) noexcept
 {
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_random, shmit::log::diagnostics::Print("Count:%u", n))
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kInsertRandom, "Count:%llu", n)
 
     // Guard against overfill
     n = OverfillGuard(n);
@@ -1677,7 +1686,7 @@ template<typename ValueType>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushBack(Buffer<T, Allocator>::size_type n,
                                                                            ValueType&& value) noexcept
 {
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_back, shmit::log::diagnostics::Print("Count:%u", n))
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kInsertBack, "Count:%llu", n)
 
     // Guard against overfill
     n = OverfillGuard(n);
@@ -1700,7 +1709,7 @@ template<typename ValueType>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushFront(Buffer<T, Allocator>::size_type n,
                                                                             ValueType&& value) noexcept
 {
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_front, shmit::log::diagnostics::Print("Count:%u", n))
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kInsertFront, "Count:%llu", n)
 
     // Guard against overfill
     n = OverfillGuard(n);
@@ -1720,8 +1729,7 @@ typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::FillPushFront(Buff
 template<typename T, class Allocator>
 template<typename ValueType>
 detail::Buffer::Iterator Buffer<T, Allocator>::FillInForward(typename Buffer<T, Allocator>::iterator position,
-                                                             Buffer<T, Allocator>::size_type         n,
-                                                             ValueType&&                             value) noexcept
+                                                             Buffer<T, Allocator>::size_type n, ValueType&& value) noexcept
 {
     for (size_t count = 0; count < n; count++)
     {
@@ -1738,8 +1746,7 @@ template<typename IteratorType, typename>
 detail::Buffer::Iterator Buffer<T, Allocator>::FillRangeForward(typename Buffer<T, Allocator>::iterator position,
                                                                 IteratorType i, IteratorType j) noexcept
 {
-    size_type range_size = to_unsigned(j - i);
-    for (size_t count = 0; count < range_size; count++)
+    while (i != j)
     {
         *position = *i++;
         position  = IncrementBoundless(position, 1);
@@ -1768,21 +1775,21 @@ void Buffer<T, Allocator>::MoveAssignWithAllocatorPropogation(Buffer<T, Allocato
         MoveMemoryContents(std::forward<detail::Buffer>(rhs));
     }
     else
-        LOG_MEMBER_DIAGNOSTIC_POSIT(bad_move)
+        LOG_WARNING_DIAGNOSTICS(shmit::log::ids::kBadMove)
 }
 
 template<typename T, class Allocator>
 template<typename IteratorType, typename>
-typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsert(
-    typename Buffer<T, Allocator>::iterator position, IteratorType i, IteratorType j) noexcept
+typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangeInsert(typename Buffer<T, Allocator>::iterator position,
+                                                                          IteratorType i, IteratorType j) noexcept
 {
+    size_type range_size = to_unsigned(j - i);
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kInsertRandom, "Count:%llu", range_size)
+
     // Guard against overfill
-    size_type range_size          = to_unsigned(j - i);
     size_type corrected_size      = OverfillGuard(range_size);
     size_type list_reduction_bias = range_size - corrected_size;
     j -= list_reduction_bias;
-
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_random, shmit::log::diagnostics::Print("Count:%u", corrected_size))
 
     // Prepare for placement at random position, this adjusts the front and back of the Buffer internally
     PrepareForRandomPlacement(position, corrected_size);
@@ -1798,13 +1805,13 @@ template<typename T, class Allocator>
 template<typename IteratorType, typename>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushBack(IteratorType i, IteratorType j) noexcept
 {
+    size_type range_size = to_unsigned(j - i);
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kInsertBack, "Count:%llu", range_size)
+
     // Guard against overfill
-    size_type range_size           = to_unsigned(j - i);
     size_type corrected_size       = OverfillGuard(range_size);
     size_type range_reduction_bias = range_size - corrected_size;
     j -= range_reduction_bias;
-
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_back, shmit::log::diagnostics::Print("Count:%u", corrected_size))
 
     // Insert start position is the back of the Buffer, unless the buffer is full
     detail::Buffer::Iterator insert_start = m_back;
@@ -1823,13 +1830,13 @@ template<typename T, class Allocator>
 template<typename IteratorType, typename>
 typename Buffer<T, Allocator>::iterator Buffer<T, Allocator>::RangePushFront(IteratorType i, IteratorType j) noexcept
 {
+    size_type range_size = to_unsigned(j - i);
+    LOG_TRACE_DIAGNOSTICS_MESSAGE(log_ids::kInsertFront, "Count:%llu", range_size)
+
     // Guard against overfill
-    size_type range_size           = to_unsigned(j - i);
     size_type corrected_size       = OverfillGuard(range_size);
     size_type range_reduction_bias = range_size - corrected_size;
     j -= range_reduction_bias;
-
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(insert_front, shmit::log::diagnostics::Print("Count:%u", corrected_size))
 
     // Insert start is n places before the front of the Buffer
     detail::Buffer::Iterator insert_start = DecrementBoundless(m_front, corrected_size);

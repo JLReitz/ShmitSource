@@ -1,5 +1,5 @@
 # Target source files located within this subdirectory
 target_sources(ShmitCore
     PRIVATE
-    Integer.cpp
+    Duration.cpp
 )

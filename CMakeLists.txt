@@ -10,8 +10,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(COMMON_FLAGS -pedantic -Wformat -Winline -Wmissing-declarations -Wreturn-type -Wsign-compare -Wsign-conversion -Wswitch -Wunused)
-set(C_FLAGS -Wmissing-prototypes -Wstrict-prototypes -Wtraditional)
+set(COMMON_FLAGS -ggdb -pedantic -Wformat -Winline -Wreturn-type -Wsign-compare -Wsign-conversion -Wswitch -Wunused)
+set(C_FLAGS -Wstrict-prototypes -Wtraditional)
 set(CXX_FLAGS -Wreorder)
 
 # Include google test using FetchContent

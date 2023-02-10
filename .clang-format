@@ -49,11 +49,11 @@ NamespaceMacros: []
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None
 PenaltyBreakAssignment: 20
-PenaltyBreakBeforeFirstCallParameter: 50
-PenaltyBreakComment: 0
+PenaltyBreakBeforeFirstCallParameter: 80
+PenaltyBreakComment: 70
 PenaltyBreakFirstLessLess: 80
 PenaltyBreakString: 0
-PenaltyExcessCharacter: 100
+PenaltyExcessCharacter: 4
 PenaltyReturnTypeOnItsOwnLine: 80
 PointerAlignment: Left
 ReflowComments: true

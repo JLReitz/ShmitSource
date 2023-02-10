@@ -6,12 +6,22 @@ namespace shmit
 {
 
 /**!
- * @brief Protected conversion from signed to unsigned int.
+ * @brief Protected conversion from signed to unsigned value
  *
+ * @tparam Signed Signed arithmetic fundamental
  * @param n Signed value
- * @retval n if n > 0
- * @retval 0 otherwise
+ * @retval Signed value if it is >= 0
+ * @retval 0 if signed value is < 0
  */
-uint64_t to_unsigned(int64_t n);
+template<typename Signed>
+inline constexpr std::make_unsigned_t<Signed> to_unsigned(Signed n)
+{
+    using Unsigned = std::make_unsigned_t<Signed>;
+
+    Unsigned ret = 0;
+    if (n > 0)
+        ret = static_cast<Unsigned>(n);
+    return ret;
+}
 
 } // namespace shmit

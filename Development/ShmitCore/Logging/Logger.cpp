@@ -15,14 +15,14 @@ Logger::Logger(Level threshold) : m_threshold(threshold)
 {
 }
 
-void Logger::LogEntry(Type type, Level level, char const* id, char const* context, char const* msg)
+void Logger::Post(Type type, Level level, char const* context, char const* id, char const* msg)
 {
     char const* type_str  = TypeToString(type);
     char const* level_str = LevelToString(level);
 
     if (level >= m_threshold)
     {
-        PublishEntry(type_str, level_str, id, context, msg);
+        Publish(type_str, level_str, context, id, msg);
     }
 }
 

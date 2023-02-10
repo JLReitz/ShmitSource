@@ -43,8 +43,7 @@ private:
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    void PublishEntry(char const* type, char const* level, char const* id, char const* context,
-                      char const* msg) override;
+    void Publish(char const* type, char const* level, char const* context, char const* id, char const* msg) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,8 +67,8 @@ void OStreamLogger<OStreamType>::Load(OStreamType& ostream)
 //  =============================================================================================================
 
 template<class OStreamType>
-void OStreamLogger<OStreamType>::PublishEntry(char const* type, char const* level, char const* id, char const* context,
-                                              char const* msg)
+void OStreamLogger<OStreamType>::Publish(char const* type, char const* level, char const* context, char const* id,
+                                         char const* msg)
 {
     if (m_ostream)
     {
@@ -81,9 +80,9 @@ void OStreamLogger<OStreamType>::PublishEntry(char const* type, char const* leve
         *m_ostream << ',';
         *m_ostream << level;
         *m_ostream << ',';
-        *m_ostream << id;
-        *m_ostream << ',';
         *m_ostream << context;
+        *m_ostream << ',';
+        *m_ostream << id;
         *m_ostream << ',';
         *m_ostream << msg;
         *m_ostream << "\n";

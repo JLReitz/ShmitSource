@@ -5,9 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#ifndef MAX_TEST_CONTAINER_SIZE
-#define MAX_TEST_CONTAINER_SIZE 5
-#endif
+constexpr size_t kMaxTestContainerSize = 5;
 
 /**!
  * @brief Verifies a container meets the "Sequence Container" named requirements specified here:
@@ -384,6 +382,14 @@ TYPED_TEST_P(SequenceContainerTest, Default_Constructor)
     EXPECT_EQ(test_container.size(), 0);
 }
 
+TYPED_TEST_P(SequenceContainerTest, Fill_Constructor)
+{
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize, TypeParam::GetInitializationValue());
+
+    EXPECT_TRUE(test_container.full());
+    EXPECT_EQ(test_container.size(), kMaxTestContainerSize);
+}
+
 TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
 {
     using IlType = std::initializer_list<typename TestFixture::ValueType>;
@@ -417,7 +423,7 @@ TYPED_TEST_P(SequenceContainerTest, Iterator_Constructors)
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor)
 {
-    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType rhs(kMaxTestContainerSize, TypeParam::GetInitializationValue());
     typename TestFixture::ContainerType test_container(rhs);
 
     EXPECT_TRUE(test_container == rhs);
@@ -433,7 +439,7 @@ TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Default_Constructed_Rh
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Empty_Rhs)
 {
-    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType rhs(kMaxTestContainerSize);
     typename TestFixture::ContainerType test_container(rhs);
 
     EXPECT_TRUE(test_container == rhs);
@@ -442,10 +448,10 @@ TYPED_TEST_P(SequenceContainerTest, Copy_Constructor_With_Empty_Rhs)
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor)
 {
     // TODO initializer list constructor
-    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TestFixture::GetInitializationValue());
+    typename TestFixture::ContainerType rhs(kMaxTestContainerSize, TestFixture::GetInitializationValue());
     typename TestFixture::ContainerType test_container(std::move(rhs));
 
-    EXPECT_EQ(test_container.size(), MAX_TEST_CONTAINER_SIZE);
+    EXPECT_EQ(test_container.size(), kMaxTestContainerSize);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Default_Constructed_Rhs)
@@ -461,7 +467,7 @@ TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Default_Constructed_Rh
 TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Empty_Rhs)
 {
     // TODO initializer list constructor
-    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType rhs(kMaxTestContainerSize);
     typename TestFixture::ContainerType test_container(std::move(rhs));
 
     EXPECT_TRUE(test_container.empty());
@@ -470,7 +476,7 @@ TYPED_TEST_P(SequenceContainerTest, Move_Constructor_With_Empty_Rhs)
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment)
 {
-    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType rhs(kMaxTestContainerSize, TypeParam::GetInitializationValue());
     typename TestFixture::ContainerType test_container;
 
     test_container = rhs;
@@ -490,7 +496,7 @@ TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Default_Constructed_Rhs
 
 TYPED_TEST_P(SequenceContainerTest, Copy_Assignment_With_Empty_Rhs)
 {
-    typename TestFixture::ContainerType rhs(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType rhs(kMaxTestContainerSize);
     typename TestFixture::ContainerType test_container;
 
     test_container = rhs;
@@ -502,10 +508,9 @@ TYPED_TEST_P(SequenceContainerTest, Move_Assignment)
 {
     typename TestFixture::ContainerType test_container;
 
-    test_container =
-        typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE, TestFixture::GetInitializationValue());
+    test_container = typename TestFixture::ContainerType(kMaxTestContainerSize, TestFixture::GetInitializationValue());
 
-    EXPECT_EQ(test_container.size(), MAX_TEST_CONTAINER_SIZE);
+    EXPECT_EQ(test_container.size(), kMaxTestContainerSize);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Default_Constructed_Rhs)
@@ -522,7 +527,7 @@ TYPED_TEST_P(SequenceContainerTest, Move_Assignment_With_Empty_Rhs)
 {
     typename TestFixture::ContainerType test_container;
 
-    test_container = typename TestFixture::ContainerType(MAX_TEST_CONTAINER_SIZE);
+    test_container = typename TestFixture::ContainerType(kMaxTestContainerSize);
 
     EXPECT_TRUE(test_container.empty());
     EXPECT_EQ(test_container.size(), 0);
@@ -568,7 +573,7 @@ TYPED_TEST_P(SequenceContainerTest, If_Container_Is_Empty_Then_Iterator_Can_Not_
 
 TYPED_TEST_P(SequenceContainerTest, If_Already_At_End_Then_Iterator_Can_Not_Increment_Forward)
 {
-    typename TestFixture::ContainerType         test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType         test_container(kMaxTestContainerSize);
     typename TestFixture::ContainerIteratorType containerEnd = test_container.end();
 
     containerEnd++;
@@ -589,7 +594,7 @@ TYPED_TEST_P(SequenceContainerTest, At_Accessor_And_Square_Bracket_Operator_Retu
 
 TYPED_TEST_P(SequenceContainerTest, Clear_Sets_Empty_State)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize, TypeParam::GetInitializationValue());
 
     test_container.clear();
 
@@ -599,25 +604,25 @@ TYPED_TEST_P(SequenceContainerTest, Clear_Sets_Empty_State)
 
 TYPED_TEST_P(SequenceContainerTest, Assign_Fill)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->AssignFill(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->AssignFill(test_container, kMaxTestContainerSize);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Fill_Replaces_Elements)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize, TypeParam::GetInitializationValue());
 
-    this->AssignFill(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->AssignFill(test_container, kMaxTestContainerSize);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Assign_Range)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     this->AssignRange(test_container);
 
@@ -626,7 +631,7 @@ TYPED_TEST_P(SequenceContainerTest, Assign_Range)
 
 TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Range_Replaces_Elements)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize, TypeParam::GetInitializationValue());
 
     this->AssignRange(test_container);
 
@@ -635,7 +640,7 @@ TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Range_Replaces_Elements)
 
 TYPED_TEST_P(SequenceContainerTest, Assign_Initializer_List)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     this->AssignInitList(test_container);
 
@@ -644,7 +649,7 @@ TYPED_TEST_P(SequenceContainerTest, Assign_Initializer_List)
 
 TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Initializer_List_Replaces_Elements)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE, TypeParam::GetInitializationValue());
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize, TypeParam::GetInitializationValue());
 
     this->AssignInitList(test_container);
 
@@ -653,51 +658,51 @@ TYPED_TEST_P(SequenceContainerTest, If_Full_Then_Assign_Initializer_List_Replace
 
 TYPED_TEST_P(SequenceContainerTest, Emplace_Back_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->EmplaceBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->EmplaceBackSequentially(test_container, kMaxTestContainerSize);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Emplace_Back_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    this->EmplaceBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE, true);
+    this->EmplaceBackSequentially(test_container, kMaxTestContainerSize, true);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Emplace_Front_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->EmplaceFrontSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->EmplaceFrontSequentially(test_container, kMaxTestContainerSize);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Emplace_Front_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    this->EmplaceFrontSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->EmplaceFrontSequentially(test_container, kMaxTestContainerSize);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Random_Emplace_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now emplace in the middle
-    size_t emplacePos = MAX_TEST_CONTAINER_SIZE / 2;
+    size_t emplacePos = kMaxTestContainerSize / 2;
     this->EmplaceValueAtIndexedPosition(test_container, emplacePos);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -705,14 +710,14 @@ TYPED_TEST_P(SequenceContainerTest, Random_Emplace_L_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Random_Emplace_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now emplace in the middle
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    size_t emplacePos = MAX_TEST_CONTAINER_SIZE / 2;
+    size_t emplacePos = kMaxTestContainerSize / 2;
     this->EmplaceValueAtIndexedPosition(test_container, emplacePos, true);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -720,42 +725,42 @@ TYPED_TEST_P(SequenceContainerTest, Random_Emplace_R_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Back_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now insert at the end
-    this->InsertValueAtIndexedPosition(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    this->InsertValueAtIndexedPosition(test_container, kMaxTestContainerSize - 1);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Back_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now insert at the end
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    this->InsertValueAtIndexedPosition(test_container, MAX_TEST_CONTAINER_SIZE - 1, true);
+    this->InsertValueAtIndexedPosition(test_container, kMaxTestContainerSize - 1, true);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Fill_Back)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     // Fill container halfway
-    size_t fill_count = MAX_TEST_CONTAINER_SIZE / 2;
+    size_t fill_count = kMaxTestContainerSize / 2;
     this->PushBackSequentially(test_container, fill_count);
 
     // Now insert at the end
-    size_t empty_count = MAX_TEST_CONTAINER_SIZE - fill_count;
-    this->InsertFillAtIndexedPosition(test_container, (MAX_TEST_CONTAINER_SIZE - empty_count), empty_count);
+    size_t empty_count = kMaxTestContainerSize - fill_count;
+    this->InsertFillAtIndexedPosition(test_container, (kMaxTestContainerSize - empty_count), empty_count);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
@@ -773,8 +778,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Range_Back)
     this->PushBackSequentially(test_container, il_size);
 
     // Now insert the initializer list as a range at the end
-    size_t empty_count = container_size - il_size;
-    this->InsertRangeAtIndexedPosition(test_container, (container_size - empty_count));
+    this->InsertRangeAtIndexedPosition(test_container, il_size);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
@@ -791,18 +795,17 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Initializer_List_Back)
     this->PushBackSequentially(test_container, il_size);
 
     // Now insert the initializer list at the end
-    size_t empty_count = container_size - il_size;
-    this->InsertInitListAtIndexedPosition(test_container, (container_size - empty_count));
+    this->InsertInitListAtIndexedPosition(test_container, il_size);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Front_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now insert at the end
     this->InsertValueAtIndexedPosition(test_container, 0);
@@ -812,10 +815,10 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Front_L_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Front_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now insert at the end
     // 'true' flag in last argument (default = 'false') signals an R-value operation
@@ -826,14 +829,14 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Front_R_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Insert_Fill_Front)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     // Fill container halfway
-    size_t fill_count = MAX_TEST_CONTAINER_SIZE / 2;
+    size_t fill_count = kMaxTestContainerSize / 2;
     this->PushBackSequentially(test_container, fill_count);
 
     // Now insert at the front
-    size_t empty_count = MAX_TEST_CONTAINER_SIZE - fill_count;
+    size_t empty_count = kMaxTestContainerSize - fill_count;
     this->InsertFillAtIndexedPosition(test_container, 0, empty_count);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -868,7 +871,7 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Initializer_List_Front)
     // Fill container halfway
     this->PushBackSequentially(test_container, il_size);
 
-    // Now insert the initializer list at the end
+    // Now insert the initializer list at the front
     this->InsertInitListAtIndexedPosition(test_container, 0);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -876,13 +879,13 @@ TYPED_TEST_P(SequenceContainerTest, Insert_Initializer_List_Front)
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now insert in the middle
-    size_t insert_pos = MAX_TEST_CONTAINER_SIZE / 2;
+    size_t insert_pos = kMaxTestContainerSize / 2;
     this->InsertValueAtIndexedPosition(test_container, insert_pos);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -890,14 +893,14 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_L_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    // Fill container to MAX_TEST_CONTAINER_SIZE - 1
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    // Fill container to kMaxTestContainerSize - 1
+    this->PushBackSequentially(test_container, kMaxTestContainerSize - 1);
 
     // Now insert in the middle
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    size_t insert_pos = MAX_TEST_CONTAINER_SIZE / 2;
+    size_t insert_pos = kMaxTestContainerSize / 2;
     this->InsertValueAtIndexedPosition(test_container, insert_pos, true);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -905,15 +908,15 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_R_Value)
 
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_Fill)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     // Fill container halfway
-    size_t fill_count = MAX_TEST_CONTAINER_SIZE / 2;
+    size_t fill_count = kMaxTestContainerSize / 2;
     this->PushBackSequentially(test_container, fill_count);
 
     // Now insert in the middle of the valid element space
     size_t insert_pos  = fill_count / 2;
-    size_t empty_count = MAX_TEST_CONTAINER_SIZE - fill_count;
+    size_t empty_count = kMaxTestContainerSize - fill_count;
     this->InsertFillAtIndexedPosition(test_container, insert_pos, empty_count);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -923,17 +926,16 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_Range)
 {
     // Using test module's initializer list to supply the range
     // Fetch the size and construct a container twice as large
-    size_t il_size                = TestFixture::InitializerListSize();
-    size_t container_size         = il_size * 2;
-    size_t initial_container_size = container_size - il_size;
+    size_t il_size        = TestFixture::InitializerListSize();
+    size_t container_size = il_size * 2;
 
     typename TestFixture::ContainerType test_container(container_size);
 
     // Fill container halfway
     this->PushBackSequentially(test_container, il_size);
 
-    // Now insert the initializer list as a range at the end
-    size_t insert_pos = initial_container_size / 2;
+    // Now insert the initializer list as a range in the middle
+    size_t insert_pos = il_size / 2;
     this->InsertRangeAtIndexedPosition(test_container, insert_pos);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -942,17 +944,16 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_Range)
 TYPED_TEST_P(SequenceContainerTest, Random_Insert_InitializerList)
 {
     // Fetch the test module's initializer list size and construct a container twice as large
-    size_t il_size                = TestFixture::InitializerListSize();
-    size_t container_size         = il_size * 2;
-    size_t initial_container_size = container_size - il_size;
+    size_t il_size        = TestFixture::InitializerListSize();
+    size_t container_size = il_size * 2;
 
     typename TestFixture::ContainerType test_container(container_size);
 
     // Fill container halfway
     this->PushBackSequentially(test_container, il_size);
 
-    // Now insert the initializer list at the end
-    size_t insert_pos = initial_container_size / 2;
+    // Now insert the initializer list in the middle
+    size_t insert_pos = il_size / 2;
     this->InsertInitListAtIndexedPosition(test_container, insert_pos);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -960,47 +961,47 @@ TYPED_TEST_P(SequenceContainerTest, Random_Insert_InitializerList)
 
 TYPED_TEST_P(SequenceContainerTest, Push_Back_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->PushBackSequentially(test_container, kMaxTestContainerSize);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Back_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE, true);
+    this->PushBackSequentially(test_container, kMaxTestContainerSize, true);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_L_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->PushFrontSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->PushFrontSequentially(test_container, kMaxTestContainerSize);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Push_Front_R_Value)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
     // 'true' flag in last argument (default = 'false') signals an R-value operation
-    this->PushFrontSequentially(test_container, MAX_TEST_CONTAINER_SIZE, true);
+    this->PushFrontSequentially(test_container, kMaxTestContainerSize, true);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Erase_Single_Front)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
+    this->PushBackSequentially(test_container, kMaxTestContainerSize);
     this->EraseValueAtIndexedPosition(test_container, 0);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -1008,41 +1009,41 @@ TYPED_TEST_P(SequenceContainerTest, Erase_Single_Front)
 
 TYPED_TEST_P(SequenceContainerTest, Erase_Single_Back)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
-    this->EraseValueAtIndexedPosition(test_container, MAX_TEST_CONTAINER_SIZE - 1);
+    this->PushBackSequentially(test_container, kMaxTestContainerSize);
+    this->EraseValueAtIndexedPosition(test_container, kMaxTestContainerSize - 1);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Random_Erase_Single)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
-    this->EraseValueAtIndexedPosition(test_container, MAX_TEST_CONTAINER_SIZE / 2);
+    this->PushBackSequentially(test_container, kMaxTestContainerSize);
+    this->EraseValueAtIndexedPosition(test_container, kMaxTestContainerSize / 2);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Erase_Range_Front)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
-    this->EraseRangeAtIndexedPosition(test_container, 0, MAX_TEST_CONTAINER_SIZE / 2);
+    this->PushBackSequentially(test_container, kMaxTestContainerSize);
+    this->EraseRangeAtIndexedPosition(test_container, 0, kMaxTestContainerSize / 2);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
 
 TYPED_TEST_P(SequenceContainerTest, Erase_Range_Back)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    size_t range_size  = MAX_TEST_CONTAINER_SIZE / 2;
-    size_t erase_start = MAX_TEST_CONTAINER_SIZE - range_size;
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
+    size_t range_size  = kMaxTestContainerSize / 2;
+    size_t erase_start = kMaxTestContainerSize - range_size;
+    this->PushBackSequentially(test_container, kMaxTestContainerSize);
     this->EraseRangeAtIndexedPosition(test_container, erase_start, range_size);
 
     this->ValidateAgainstTruthCheck(test_container);
@@ -1050,10 +1051,10 @@ TYPED_TEST_P(SequenceContainerTest, Erase_Range_Back)
 
 TYPED_TEST_P(SequenceContainerTest, Random_Erase_Range)
 {
-    typename TestFixture::ContainerType test_container(MAX_TEST_CONTAINER_SIZE);
+    typename TestFixture::ContainerType test_container(kMaxTestContainerSize);
 
-    this->PushBackSequentially(test_container, MAX_TEST_CONTAINER_SIZE);
-    this->EraseRangeAtIndexedPosition(test_container, MAX_TEST_CONTAINER_SIZE / 2, MAX_TEST_CONTAINER_SIZE / 2);
+    this->PushBackSequentially(test_container, kMaxTestContainerSize);
+    this->EraseRangeAtIndexedPosition(test_container, kMaxTestContainerSize / 2, kMaxTestContainerSize / 2);
 
     this->ValidateAgainstTruthCheck(test_container);
 }
@@ -1063,13 +1064,12 @@ TYPED_TEST_P(SequenceContainerTest, Random_Erase_Range)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 REGISTER_TYPED_TEST_SUITE_P(
-    SequenceContainerTest, Default_Constructor, Iterator_Constructors, Copy_Constructor,
+    SequenceContainerTest, Default_Constructor, Fill_Constructor, Iterator_Constructors, Copy_Constructor,
     Copy_Constructor_With_Default_Constructed_Rhs, Copy_Constructor_With_Empty_Rhs, Move_Constructor,
     Move_Constructor_With_Default_Constructed_Rhs, Move_Constructor_With_Empty_Rhs, Copy_Assignment,
     Copy_Assignment_With_Default_Constructed_Rhs, Copy_Assignment_With_Empty_Rhs, Move_Assignment,
     Move_Assignment_With_Default_Constructed_Rhs, Move_Assignment_With_Empty_Rhs, Initializer_List_Assignment,
-    If_Container_Is_Empty_Then_Iterator_Can_Not_Increment_Forward,
-    If_Already_At_End_Then_Iterator_Can_Not_Increment_Forward,
+    If_Container_Is_Empty_Then_Iterator_Can_Not_Increment_Forward, If_Already_At_End_Then_Iterator_Can_Not_Increment_Forward,
     At_Accessor_And_Square_Bracket_Operator_Return_Same_Elements, Clear_Sets_Empty_State, Assign_Fill,
     If_Full_Then_Assign_Fill_Replaces_Elements, Assign_Range, If_Full_Then_Assign_Range_Replaces_Elements,
     Assign_Initializer_List, If_Full_Then_Assign_Initializer_List_Replaces_Elements, Emplace_Back_L_Value,
@@ -1078,5 +1078,4 @@ REGISTER_TYPED_TEST_SUITE_P(
     Insert_Front_L_Value, Insert_Front_R_Value, Insert_Fill_Front, Insert_Range_Front, Insert_Initializer_List_Front,
     Random_Insert_L_Value, Random_Insert_R_Value, Random_Insert_Fill, Random_Insert_Range,
     Random_Insert_InitializerList, Push_Back_L_Value, Push_Back_R_Value, Push_Front_L_Value, Push_Front_R_Value,
-    Erase_Single_Front, Erase_Single_Back, Random_Erase_Single, Erase_Range_Front, Erase_Range_Back,
-    Random_Erase_Range);
+    Erase_Single_Front, Erase_Single_Back, Random_Erase_Single, Erase_Range_Front, Erase_Range_Back, Random_Erase_Range);

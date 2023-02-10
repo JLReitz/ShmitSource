@@ -1,15 +1,15 @@
-#include <ShmitCore/Logging/Events/StaticLogging.hpp>
+#include <ShmitCore/Logging/Diagnostics/Logging.hpp>
 
 #ifdef BARE_METAL_SHMIT
 
-extern Logger& gDefaultEventLogger; /*! The default event logger for bare metal systems is declared in the target
-                                       platform's library */
+extern Logger& gDefaultDiagnosticsLogger; /*! The default diagnostics logger for bare metal systems is declared in the
+                                          target platform's library*/
 
 #else
 
 #include <ShmitCore/Logging/StdoutLogger.hpp>
 
-shmit::log::StdoutLogger gDefaultEventLogger; /*! The default event logger for OS hosted systems */
+shmit::log::StdoutLogger gDefaultDiagnosticsLogger; /*! The default diagnostics logger for OS hosted systems */
 
 #endif
 
@@ -17,7 +17,7 @@ namespace shmit
 {
 namespace log
 {
-namespace events
+namespace diagnostics
 {
 
 Level   Logging::m_threshold = Level::eTrace;
@@ -27,7 +27,7 @@ Logger& Logging::m_logger    = gDefaultDiagnosticsLogger;
 //  StaticLogging method definitions in alphabetical order      ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//  Public  ============================================================================================================
+//  Public ============================================================================================================
 
 void Logging::LoadLogger(Logger& logger) // Static method
 {
@@ -42,6 +42,6 @@ void Logging::SetThreshold(Level threshold) // Static method
     m_threshold = threshold;
 }
 
-} // namespace events
+} // namespace diagnostics
 } // namespace log
 } // namespace shmit

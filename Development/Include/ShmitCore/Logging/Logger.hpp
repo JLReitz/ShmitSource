@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Defines.hpp"
+#include "Common.hpp"
 
 namespace shmit
 {
@@ -25,7 +25,7 @@ public:
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    void LogEntry(Type type, Level level, char const* id, char const* context, char const* msg);
+    void Post(Type type, Level level, char const* context, char const* id, char const* msg);
 
     /// @brief Fetches the level threshold for this Logger
     /// @return Log level
@@ -42,8 +42,7 @@ private:
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    virtual void PublishEntry(char const* type, char const* level, char const* id, char const* context,
-                              char const* msg) = 0;
+    virtual void Publish(char const* type, char const* level, char const* context, char const* id, char const* msg) = 0;
 
     Level m_threshold {Level::eTrace}; //!< Logger level threshold (default = 'eTrace')
 };

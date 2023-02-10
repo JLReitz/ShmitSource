@@ -2,6 +2,7 @@
 
 #include <ShmitCore/Logging/Logger.hpp>
 
+#include <cstdarg>
 #include <cstdio>
 
 namespace shmit
@@ -11,39 +12,47 @@ namespace log
 namespace events
 {
 
-/// @brief Static event logging interface
-class StaticLogging
+/**!
+ * @brief Static event logging interface
+ *
+ */
+class Logging
 {
 public:
-    /// @brief Public entry point for logging an event to the system
-    /// @tparam ...ARGV Format arguments type pack
-    /// @param level Event log level
-    /// @param id Event ID
-    /// @param context Event context name
-    /// @param msg_format Event message. Standard format string.
-    /// @param ...args Format arguments
-    template<typename... ARGV>
-    static void Log(Level level, char const* id, char const* context, char const* msg_format, ARGV... args);
+    /**!
+     * @brief Submits an event log to be posted by the loaded logger
+     *
+     * @tparam Context Log context
+     * @param[in] level Event log severity level
+     * @param[in] id Event log ID
+     * @param[in] context_instance Identifies and correlates an instance of Context::type with this log. If the
+     * instance's class is a derivative of shmit::Named, and it has a valid name assigned at runtime, the log
+     * will reference it by that name and otherwise by its address. If the log should not reference a specific
+     * object instance, nullptr may be passed instead.
+     * @param[in] message Event message. Supports standard printf format. Pass nullptr if no message is
+     * desired, in this case the format arguments (following) will be ignored.
+     * @param[in] ... Event message format arguments
+     */
+    template<typename Context>
+    static void Log(Level level, char const* id, typename Context::type const* context_instance, char const* message, ...);
 
-    /// @brief Loads a logger instance in to the static interface. This replaces the previously loaded Logger.
-    /// @param logger Logger instance
+    /**!
+     * @brief Replaces the current event logger with a new one
+     *
+     * @param[in] logger Logger instance
+     */
     static void LoadLogger(Logger& logger);
 
-    /// @brief Configures the level threshold for the static interface
-    /// @param level Log entries below this level will not be published
+    /**!
+     * @brief Set the severity threshold for event logs
+     *
+     * @param[in] level Severity threshold
+     */
     static void SetThreshold(Level level);
 
 private:
-    /// @brief Forwards compiled entry fields to the currently loaded Logger
-    /// @param level Event log level
-    /// @param id Event ID string
-    /// @param context Event context name
-    /// @param event_str Event message string
-    static void LogEntry(Level level, char const* id, char const* context, char const* event_str);
-
-    /// @brief References the currently loaded Logger. By default this is an StdoutLogger on hosted systems and a
-    /// VoidLogger when running on bare metal.
-    static Logger& m_logger;
+    static Level   m_threshold; /*! Diagnostics severity threshold */
+    static Logger& m_logger;    /*! Event logger */
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,22 +61,37 @@ private:
 
 //  Public  ============================================================================================================
 
-template<typename... ARGV>
-void StaticLogging::Log(Level level, char const* id, char const* context, char const* msg_format, ARGV... args)
+template<typename Context>
+void Logging::Log(Level level, char const* id, typename Context::type const* context_instance, char const* message,
+                  ...) // Static method
 {
-    // TODO add timestamp
+    using ContextType = typename Context::type;
 
-    // Format message
-    size_t msg_length = std::snprintf(NULL, 0, msg_format, args...) + 1;
+    static_assert(std::is_void_v<ContextType> || std::is_class_v<ContextType>, "Context::type must be void or a class "
+                                                                               "implementation");
 
-    // Place in some kind of buffer
-    char* event_str = new char[msg_length] {};
-    std::snprintf(event_str, msg_length, msg_format, args...);
+    constexpr size_t kEventStringSize = 256;
+    char             event_str[kEventStringSize] {};
+    size_t           event_str_length = 0;
 
-    LogEntry(level, id, context, event_str);
+    // TODO cache timestamp
 
-    // Destruct buffer
-    delete[] event_str;
+    // Print the name of the logged instance to the diagnostic string
+    event_str_length += print_name_of_instance(context_instance, event_str);
+
+    // Print event message, if it exists
+    if (message)
+    {
+        std::va_list message_args;
+        va_start(message_args, message);
+        event_str[event_str_length++] = ',';
+        event_str_length += protected_vsnprintf((event_str + event_str_length), (kEventStringSize - event_str_length),
+                                                message, message_args);
+    }
+
+    // If the submission's level passes the filter, post it
+    if (level >= m_threshold)
+        m_logger.Post(Type::eEvent, level, context, id, event_str);
 }
 
 } // namespace events

@@ -2,5 +2,10 @@
   interface of course, then we can't do anything)
 - Prepend timestamps to log strings before passing to LoggerInterface
 - Timeout enable-all switch
+- HART: Health And Resource Thresholds
 
 - Trade study: time, runtime calculations vs virtual callbacks
+
+- Named requirements documentation:
+  - Sequence Container
+  - Compile-Time Ratio

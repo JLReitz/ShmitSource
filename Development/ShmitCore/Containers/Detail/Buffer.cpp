@@ -16,13 +16,13 @@ namespace detail
 // clang-format off
 Buffer::Buffer(Buffer::size_type element_size_bytes) noexcept : m_element_size_bytes {element_size_bytes}
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
+    //LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 }
 
 Buffer::Buffer(char const* name, Buffer::size_type element_size_bytes) noexcept
     : Named(name), m_element_size_bytes {element_size_bytes}
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
+    //LOG_MEMBER_DIAGNOSTIC_POSIT(constructing)
 }
 // clang-format on
 
@@ -77,7 +77,7 @@ Buffer::size_type Buffer::WrapIndex(size_type index) const
 
 void Buffer::AtCapacity() noexcept
 {
-    LOG_MEMBER_DIAGNOSTIC_POSIT(at_capacity)
+    LOG_DEBUG_DIAGNOSTICS(shmit::log::ids::kAtCapacity)
     m_is_full = true;
 }
 
@@ -254,7 +254,7 @@ Buffer::size_type Buffer::OverfillGuard(size_type count) const noexcept
 
         // Log overfill
         size_type diff = count - m_max_element_count;
-        LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(overfill, shmit::log::diagnostics::Print("Count:%u", diff))
+        LOG_WARNING_DIAGNOSTICS_MESSAGE(log_ids::kOverfill, "Count:%llu", diff)
     }
 
     return count;
@@ -265,12 +265,12 @@ void Buffer::PostInsertFront(Buffer::Iterator insert_start)
     if (insert_start <= m_back)
     {
         // Insert has filled buffer
-        // Check for back overflow
+        // Check for front overflow
         size_type back_wrapped         = WrapIndex(m_back.m_offset);
         size_type insert_start_wrapped = WrapIndex(insert_start.m_offset);
         size_type diff                 = back_wrapped - insert_start_wrapped;
         if (diff)
-            LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(front_overflow, shmit::log::diagnostics::Print("Count:%u", diff))
+            LOG_WARNING_DIAGNOSTICS_MESSAGE(log_ids::kFrontOverflow, "Count:%llu", diff)
 
         m_back = DecrementBoundless(insert_start, 1);
         AtCapacity();
@@ -293,7 +293,7 @@ void Buffer::PostInsertBack(Buffer::Iterator insert_end)
         size_type front_wrapped      = WrapIndex(m_front.m_offset);
         size_type insert_end_wrapped = WrapIndex(insert_end.m_offset);
         size_type diff               = insert_end_wrapped - front_wrapped;
-        LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(back_overflow, shmit::log::diagnostics::Print("Count:%u", diff))
+        LOG_WARNING_DIAGNOSTICS_MESSAGE(log_ids::kBackOverflow, "Count:%llu", diff)
 
         m_front = IncrementBoundless(insert_end, 1);
         AtCapacity();
@@ -316,7 +316,7 @@ void Buffer::PrepareForRandomPlacement(Buffer::Iterator const& start, size_type 
         if (n > distance_from_end)
         {
             size_type diff = n - distance_from_end;
-            LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(back_overflow, shmit::log::diagnostics::Print("Count:%u", diff))
+            LOG_WARNING_DIAGNOSTICS_MESSAGE(log_ids::kBackOverflow, "Count:%llu", diff)
         }
 
         m_back = IncrementBoundless(start, n - 1); // Back of buffer is now the end of the placement
@@ -337,7 +337,7 @@ void Buffer::PrepareForRandomPlacement(Buffer::Iterator const& start, size_type 
             // Reduce recorded number of pre-existing elements to truncate those at the back that will not fit
             size_type diff = total_element_count - m_max_element_count;
             num_pre_existing -= diff;
-            LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(truncation, shmit::log::diagnostics::Print("Count:%u", diff))
+            LOG_WARNING_DIAGNOSTICS_MESSAGE(log_ids::kTruncation, "Count:%llu", diff)
         }
 
         // Establish start of destination zone for content shift
@@ -510,20 +510,12 @@ void Buffer::Iterator::Copy(Buffer::Iterator const& rhs)
 
 void Buffer::Iterator::Increment(Buffer::size_type steps)
 {
-    size_type old_offset = m_offset;
     m_buffer->IncrementBounded(*this, steps);
-
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(increment, shmit::log::diagnostics::Print("Count:%u,From:%u,To:%u", steps,
-                                                                                      old_offset, m_offset))
 }
 
 void Buffer::Iterator::Decrement(Buffer::size_type steps)
 {
-    size_type old_offset = m_offset;
     m_buffer->DecrementBounded(*this, steps);
-
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(decrement, shmit::log::diagnostics::Print("Count:%u,From:%u,To:%u", steps,
-                                                                                      old_offset, m_offset))
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -600,10 +592,7 @@ void Buffer::ConstIterator::Copy(Buffer::Iterator const& rhs)
 
 void Buffer::ConstIterator::Increment(Buffer::size_type steps)
 {
-    size_type old_offset = m_offset;
     m_buffer->IncrementBounded(*this, steps);
-    LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(increment, shmit::log::diagnostics::Print("Count:%u,From:%d,To:%d", steps,
-                                                                                      old_offset, m_offset))
 }
 
 void Buffer::ConstIterator::Decrement(Buffer::size_type steps)

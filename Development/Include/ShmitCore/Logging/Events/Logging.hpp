@@ -14,7 +14,7 @@
 ///     int x = 69;
 ///     LOG_TRACE_EVENT("example", "trace-event", "x = %d", x)
 #define LOG_TRACE_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eTrace, id, context, message, __VA_ARGS__);
+    shmit::log::events::Logging::Log(shmit::log::Level::eTrace, id, context, message, __VA_ARGS__);
 
 /// Submits a debug event to the static logging interface
 /// Parameters:
@@ -28,7 +28,7 @@
 ///     int x = 69;
 ///     LOG_DEBUG_EVENT("example", "debug-event", "x = %d", x)
 #define LOG_DEBUG_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eDebug, id, context, message, __VA_ARGS__);
+    shmit::log::events::Logging::Log(shmit::log::Level::eDebug, id, context, message, __VA_ARGS__);
 
 /// Submits an info event to the static logging interface
 /// Parameters:
@@ -42,7 +42,7 @@
 ///     int x = 69;
 ///     LOG_INFO_EVENT("example", "info-event", "x = %d", x)
 #define LOG_INFO_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eInfo, id, context, message, __VA_ARGS__);
+    shmit::log::events::Logging::Log(shmit::log::Level::eInfo, id, context, message, __VA_ARGS__);
 
 /// Submits a warning event to the static logging interface
 /// Parameters:
@@ -56,7 +56,7 @@
 ///     int x = 69;
 ///     LOG_WARNING_EVENT("example", "warning-event", "x = %d", x)
 #define LOG_WARNING_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eWarning, id, context, message, __VA_ARGS__);
+    shmit::log::events::Logging::Log(shmit::log::Level::eWarning, id, context, message, __VA_ARGS__);
 
 /// Submits an error event to the static logging interface
 /// Parameters:
@@ -70,7 +70,7 @@
 ///     int x = 69;
 ///     LOG_ERROR_EVENT("example", "error-event", "x = %d", x)
 #define LOG_ERROR_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eError, id, context, message, __VA_ARGS__);
+    shmit::log::events::Logging::Log(shmit::log::Level::eError, id, context, message, __VA_ARGS__);
 
 /// Submits a fatal event to the static logging interface
 /// Parameters:
@@ -84,7 +84,7 @@
 ///     int x = 69;
 ///     LOG_FATAL_EVENT("example", "fatal-event", "x = %d", x)
 #define LOG_FATAL_EVENT(context, id, message, ...) \
-    shmit::log::events::StaticLogging::Log(shmit::log::Level::eFatal, id, context, message, __VA_ARGS__);
+    shmit::log::events::Logging::Log(shmit::log::Level::eFatal, id, context, message, __VA_ARGS__);
 
 //  String Logging  ---------------------------------------------------------------------------------------------------
 

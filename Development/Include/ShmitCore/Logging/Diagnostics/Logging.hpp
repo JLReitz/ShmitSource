@@ -1,181 +1,100 @@
 #pragma once
 
-#include "DataPoints.hpp"
-#include "StaticLogging.hpp"
+#include "../Logger.hpp"
+
+#include <cstdarg>
+
+namespace shmit
+{
+namespace log
+{
+namespace diagnostics
+{
+
+/**!
+ * @brief Static diagnostics logging interface
+ *
+ */
+class Logging
+{
+public:
+    /**!
+     * @brief Submits a diagnostic log
+     *
+     * @tparam Context Logging context
+     * @param[in] level Diagnostic log severity level
+     * @param[in] id Diagnostic log ID
+     * @param[in] context_instance Identifies and correlates an instance of Context::type with this log. If the
+     * instance's class is a derivative of shmit::Named, and it has a valid name assigned at runtime, the log
+     * will reference it by that name and otherwise by its address. If the log should not reference a specific
+     * object instance, nullptr may be passed instead.
+     * @param[in] message Diagnostic message. Supports standard printf format. Pass nullptr if no message is
+     * desired, in this case the format arguments (following) will be ignored.
+     * @param[in] ... Diagnostic message format arguments
+     */
+    template<typename Context>
+    static void Log(Level level, char const* id, typename Context::type const* context_instance, char const* message, ...);
+
+    /**!
+     * @brief Replaces the current diagnostic logger with a new one
+     *
+     * @param[in] logger Logger instance
+     */
+    static void LoadLogger(Logger& logger);
+
+    /**!
+     * @brief Set the severity threshold for all diagnostic logs. Any that are submitted with a level below this
+     * threshold will not be posted to the logger.
+     *
+     * @param[in] level Severity threshold
+     */
+    static void SetThreshold(Level level);
+
+private:
+    static Level   m_threshold; /*! Diagnostics severity threshold */
+    static Logger& m_logger;    /*! Diagnostics logger */
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Context Declaration     ////////////////////////////////////////////////////////////////////////////////////////////
+//  StaticLogging method definitions in alphabetical order      ////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Establishes a diagnostic context within the current scope
-/// The context's name is represented by a constexpr c-style string named 'kDiagnosticContextName'
-#define DIAGNOSTIC_CONTEXT(name) static constexpr char const* kDiagnosticContextName = #name;
+//  Public  ============================================================================================================
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Posit Declaration       ////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template<typename Context>
+void Logging::Log(Level level, char const* id, typename Context::type const* context_instance, char const* message,
+                  ...) // Static method
+{
+    using ContextType = typename Context::type;
 
-/// Declares a basic Posit within the current diagnostic context.
-/// Parameters:
-///     tag - Means for identifying the Posit. Provided as an expression, not a string.
-///     level - shmit::log::Level
-///
-/// The Posit is a static const instance of 'shmit::log::diagnostic::Posit', named after the tag provided in this
-/// argument list (format: _posit_<tag>). This instance should not be accessed or manipulated manually unless absolutely
-/// necessary, developers should rely on the macros within this file to do the heavy lifting as much as possible.
-///
-/// Usage example:
-///
-///     Given the following diagnostic context is declared:
-///         DIAGNOSTIC_CONTEXT(ExampleContext)
-///
-///     Then:
-///         DIAGNOSTIC_POSIT(example, shmit::log::Level::eDebug)
-///
-///     Will generate a static const Posit instance named '_posit_example' and variable data set named
-///     '_example_variable_data'. This Posit does not hold any data points but the variable database of size 0 is still
-///     declared for compatability with the static logging interface.
-#define DIAGNOSTIC_POSIT(tag, level) \
-    static constexpr shmit::log::diagnostics::detail::Posit<0, 0> _posit_##tag = \
-        shmit::log::diagnostics::detail::MakePosit<0, 0>(#tag, level, {}); \
-    mutable std::array<uint8_t, 0> _posit_##tag##_variable_data {};
+    static_assert(std::is_void_v<ContextType> || std::is_class_v<ContextType>, "Context::type must be void or a class "
+                                                                               "implementation");
 
-/// Declares a Posit with listed DataPoints and complimentary variable database within the current diagnostic context.
-/// Parameters:
-///     tag - Means for identifying the Posit. Provided as an expression, not a string.
-///     level - shmit::log::Level
-///     ... - Data points to be held by the Posit. Core set of available definitions are listed in "DataPoints.hpp".
-///
-/// The Posit is a static const instance of 'shmit::log::diagnostic::Posit', named after the tag provided in this
-/// argument list (format: _posit_<tag>). The variable database is a mutable 'uint8_t' std::array sized appropriately
-/// for the accumulated resource needs of the data points held by the Posit and is also named after the tag (format:
-/// _<tag>_variable_data).
-///
-/// Neither of these instances should be accessed or manipulated manually unless absolutely
-/// necessary, developers should rely on the macros within this file to do the heavy lifting as much as possible.
-///
-/// Usage example:
-///
-///     Given the following diagnostic context is declared:
-///         DIAGNOSTIC_CONTEXT(ExampleContext)
-///
-///     Then:
-///         DIAGNOSTIC_DATA_POSIT(example, shmit::log::Level::eDebug, shmit::log::diagnostics::Times())
-///
-///     Will generate a static const Posit instance named '_posit_example' and variable data set named
-///     '_example_variable_data'. This Posit holds one DataPoint -- Times -- which reports the number of times the Posit
-///     has been submitted.
-#define DIAGNOSTIC_DATA_POSIT(tag, level, ...) \
-    static constexpr size_t kPosit_##tag##_NumDataPoints = \
-        shmit::log::diagnostics::detail::CountDataPoints({__VA_ARGS__}); \
-    static constexpr size_t kPosit_##tag##_ConstDataSize = \
-        shmit::log::diagnostics::detail::ConstDatabaseSize({__VA_ARGS__}); \
-    static constexpr size_t kPosit_##tag##_VariableDataSize = \
-        shmit::log::diagnostics::detail::VariableDatabaseSize({__VA_ARGS__}); \
-    static constexpr shmit::log::diagnostics::detail::Posit<kPosit_##tag##_NumDataPoints, kPosit_##tag##_ConstDataSize> \
-        _posit_##tag = \
-            shmit::log::diagnostics::detail::MakePosit<kPosit_##tag##_NumDataPoints, kPosit_##tag##_ConstDataSize>( \
-                #tag, level, {__VA_ARGS__}); \
-    mutable std::array<uint8_t, kPosit_##tag##_VariableDataSize> _posit_##tag##_variable_data {};
+    constexpr size_t kDiagnosticStringSize = 256;
+    char             diagnostic_str[kDiagnosticStringSize] {};
+    size_t           diagnostic_str_length = 0;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Standard Posit Logging        //////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // TODO cache timestamp
 
-/// Submits a Posit that is globally defined to the static logging interface
-///
-/// Usage example:
-///
-///     Given the following context and Posit is declared in the global scope:
-///         DIAGNOSTIC_CONTEXT(GlobalContext)
-///         DIAGNOSTIC_POSIT(Example, shmit::log::Level::eDebug)
-///
-///     That Posit can be logged from anywhere:
-///         LOG_GLOBAL_DIAGNOSTIC_POSIT(Example)
-#define LOG_GLOBAL_DIAGNOSTIC_POSIT(tag) \
-    shmit::log::diagnostics::StaticLogging::Log<void>(::_posit_##tag##, ::_posit_##tag##_variable_data.data(), \
-                                                      ::kDiagnosticContextName, nullptr, {});
+    // Print the name of the logged instance to the diagnostic string
+    diagnostic_str_length += print_name_of_instance(context_instance, diagnostic_str);
 
-/// Submits a Posit that is a member of the provided namespace to the static logging interface.
-///
-/// Usage example:
-///
-///     Given the following context and Posit is declared within a namespace 'scoped::example':
-///         DIAGNOSTIC_CONTEXT(scoped::example)
-///         DIAGNOSTIC_POSIT(Example, shmit::log::Level::eDebug)
-///
-///     That Posit can be logged from anywhere:
-///         LOG_SCOPED_DIAGNOSTIC_POSIT(Example, scoped::example)
-#define LOG_SCOPED_DIAGNOSTIC_POSIT(tag, namespace) \
-    shmit::log::diagnostics::StaticLogging::Log<void>(namespace## ::_posit_##tag, \
-                                                      namespace## ::_posit_##tag##_variable_data.data(), \
-                                                      namespace## ::kDiagnosticContextName, nullptr, {});
+    // Print diagnostic message, if it exists
+    if (message)
+    {
+        std::va_list message_args;
+        va_start(message_args, message);
+        diagnostic_str[diagnostic_str_length++] = ',';
+        diagnostic_str_length += protected_vsnprintf((diagnostic_str + diagnostic_str_length),
+                                                     (kDiagnosticStringSize - diagnostic_str_length), message,
+                                                     message_args);
+    }
 
-/// Submits a Posit that is a member of the encompassing class to the static logging interface.
-/// Use only when within a class context which holds diagnostic Posit that matches the tag.
-///
-/// Usage example:
-///
-///     Given the following context and Posit is declared within a class 'Impl':
-///         DIAGNOSTIC_CONTEXT(Impl)
-///         DIAGNOSTIC_POSIT(Example, shmit::log::Level::eDebug)
-///
-///     That Posit can be logged from within a member method of 'Impl':
-///         LOG_MEMBER_DIAGNOSTIC_POSIT(Example)
-#define LOG_MEMBER_DIAGNOSTIC_POSIT(tag) \
-    shmit::log::diagnostics::StaticLogging::Log(_posit_##tag, _posit_##tag##_variable_data.data(), \
-                                                kDiagnosticContextName, this, {});
+    // If the submission's level passes the filter, post it
+    if (level >= m_threshold)
+        m_logger.Post(Type::eDiagnostics, level, id, context_name, diagnostic_str);
+}
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Interactive Posit Logging       ////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Submits a Posit that is globally defined to the static logging interface. Additional interactions are submitted as
-/// well, they are processed before the Posit's held DataPoints
-///
-/// Usage example:
-///
-///     Given the following context and Posit is declared in the global scope:
-///         DIAGNOSTIC_CONTEXT(GlobalContext)
-///         DIAGNOSTIC_DATA_POSIT(Example, shmit::log::Level::eDebug, shmit::log::diagnostics::Times())
-///
-///     That Posit can be logged from anywhere:
-///     The 'Print()' interaction will write the string "Example" before the DataPoint printout on the logged entry.
-///         LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(Example, shmit::log::diagnostics::Print("Example"))
-#define LOG_INTERACTIVE_GLOBAL_DIAGNOSTIC_POSIT(tag, ...) \
-    shmit::log::diagnostics::StaticLogging::Log<void>(::_posit_##tag##, ::_posit_##tag##_variable_data.data(), \
-                                                      ::kDiagnosticContextName, nullptr, {__VA_ARGS__});
-
-/// Submits a Posit that is a member of the provided namespace to the static logging interface. Additional interactions
-/// are submitted as well, they are processed before the Posit's held DataPoints
-///
-/// Usage example:
-///
-///     Given the following context and Posit is declared within a namespace 'scoped::example':
-///         DIAGNOSTIC_CONTEXT(scoped::example)
-///         DIAGNOSTIC_DATA_POSIT(Example, shmit::log::Level::eDebug, shmit::log::diagnostics::Times())
-///
-///     That Posit can be logged from anywhere:
-///     The 'Print()' interaction will write the string "Example" before the DataPoint printout on the logged entry.
-///         LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(Example, shmit::log::diagnostics::Print("Example"))
-#define LOG_INTERACTIVE_SCOPED_DIAGNOSTIC_POSIT(tag, namespace, ...) \
-    shmit::log::diagnostics::StaticLogging::Log<void>(namespace## ::_posit_##tag, \
-                                                      namespace## ::_posit_##tag##_variable_data.data(), \
-                                                      namespace## ::kDiagnosticContextName, nullptr, {__VA_ARGS__});
-
-/// Submits a Posit that is a member of the encompassing class to the static logging interface. Additional interactions
-/// are submitted as well, they are processed before the Posit's held DataPoints. Use only when within a class context
-/// which holds diagnostic Posit that matches the tag.
-///
-/// Usage example:
-///
-///     Given the following context and Posit is declared within a class 'Impl':
-///         DIAGNOSTIC_CONTEXT(Impl)
-///         DIAGNOSTIC_DATA_POSIT(Example, shmit::log::Level::eDebug, shmit::log::diagnostics::Times())
-///
-///     That Posit can be logged from within a member method of 'Impl'.
-///     The 'Print()' interaction will write the string "Example" before the DataPoint printout on the logged entry.
-///         LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(Example, shmit::log::diagnostics::Print("Example"))
-#define LOG_INTERACTIVE_MEMBER_DIAGNOSTIC_POSIT(tag, ...) \
-    shmit::log::diagnostics::StaticLogging::Log(_posit_##tag, _posit_##tag##_variable_data.data(), \
-                                                kDiagnosticContextName, this, {__VA_ARGS__});
+} // namespace diagnostics
+} // namespace log
+} // namespace shmit

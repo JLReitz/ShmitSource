@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/Types/StdTypes.hpp>
+#include "Duration.hpp"
 
 namespace shmit
 {
@@ -11,10 +11,14 @@ template<class Clock>
 class Instant
 {
 public:
-    using Duration = shmit::uint64_t;
+    // TODO assert Clock is of correct type
+    using TicksPerSecond = typename Clock::TicksPerSecond; /*! Conversion ratio from clock ticks to Seconds */
+
+    template<class Denomination>
+    operator Duration<Denomination>() const noexcept;
 
 private:
-    Duration m_ticks {0};
+    uint64_t m_ticks;
 };
 
 } // namespace time
