@@ -21,7 +21,7 @@ namespace events
 {
 
 Level   Logging::m_threshold = Level::eTrace;
-Logger& Logging::m_logger    = gDefaultDiagnosticsLogger;
+Logger& Logging::m_logger    = gDefaultEventLogger;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  StaticLogging method definitions in alphabetical order      ////////////////////////////////////////////////////////

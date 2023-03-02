@@ -131,43 +131,6 @@ enum class Level : uint8_t
  */
 constexpr const char* LevelToString(Level level);
 
-class RawString
-{
-    // TODO iterators
-
-private:
-    std::string_view m_raw;
-    char*            m_format;
-};
-
-template<typename... Argv>
-struct FormatTable
-{
-    template<typename First, typename... Argv2>
-    void populate_element_length(size_t* element_start)
-    {
-        if constexpr (sizeof...(ARGV) == 0)
-            *element_start = sizeof(First);
-        else
-            populate_element_length<Argv2...>((element_start + 1));
-    }
-
-    constexpr FormatTable()
-    {
-        populate_element_length<Argv...>(element_length);
-    }
-
-    static constexpr size_t kNumElements = sizeof...(Argv);
-    size_t                  element_length[kNumElements];
-};
-
-template<typename... Argv>
-class FormatString
-{
-private:
-    static constexpr FormatTable<Argv...> kFormatTable;
-};
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Implementation details          ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

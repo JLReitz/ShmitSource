@@ -91,7 +91,7 @@ void Logging::Log(Level level, char const* id, typename Context::type const* con
 
     // If the submission's level passes the filter, post it
     if (level >= m_threshold)
-        m_logger.Post(Type::eEvent, level, context, id, event_str);
+        m_logger.Post(Type::eEvent, level, Context::kName, id, event_str);
 }
 
 } // namespace events

@@ -65,7 +65,8 @@
         "unordered_set": "cpp",
         "thread": "cpp",
         "variant": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "charconv": "cpp"
     },
     "editor.formatOnSave": true,
     "C_Cpp.formatting": "clangFormat",

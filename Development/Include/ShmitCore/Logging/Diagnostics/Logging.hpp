@@ -92,7 +92,7 @@ void Logging::Log(Level level, char const* id, typename Context::type const* con
 
     // If the submission's level passes the filter, post it
     if (level >= m_threshold)
-        m_logger.Post(Type::eDiagnostics, level, id, context_name, diagnostic_str);
+        m_logger.Post(Type::eDiagnostics, level, id, Context::kName, diagnostic_str);
 }
 
 } // namespace diagnostics
