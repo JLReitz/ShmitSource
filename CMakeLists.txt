@@ -30,7 +30,7 @@ FetchContent_MakeAvailable(googletest)
 add_library(ShmitCore STATIC)
 
 target_compile_options(ShmitCore
-  PUBLIC
+  PRIVATE
   "${COMMON_FLAGS}"
   "$<$<COMPILE_LANGUAGE:C>:${C_FLAGS}>"
   "$<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAGS}>"

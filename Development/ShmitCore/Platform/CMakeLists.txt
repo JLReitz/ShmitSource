@@ -1,2 +1,5 @@
-# Include directories below this one
-add_subdirectory(Clock)
+add_library(ShmitCore-PlatformClock-Native INTERFACE)
+target_sources(ShmitCore-PlatformClock-Native
+    INTERFACE
+    Time.cpp
+)

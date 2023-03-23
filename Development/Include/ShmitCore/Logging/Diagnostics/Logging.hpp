@@ -2,6 +2,8 @@
 
 #include "../Logger.hpp"
 
+#include <ShmitCore/Platform/Time.hpp>
+
 #include <cstdarg>
 
 namespace shmit
@@ -33,7 +35,8 @@ public:
      * @param[in] ... Diagnostic message format arguments
      */
     template<typename Context>
-    static void Log(Level level, char const* id, typename Context::type const* context_instance, char const* message, ...);
+    static void Log(Level level, char const* id, typename Context::type const* context_instance, char const* message,
+                    ...) noexcept;
 
     /**!
      * @brief Replaces the current diagnostic logger with a new one
@@ -63,7 +66,7 @@ private:
 
 template<typename Context>
 void Logging::Log(Level level, char const* id, typename Context::type const* context_instance, char const* message,
-                  ...) // Static method
+                  ...) noexcept // Static method
 {
     using ContextType = typename Context::type;
 
@@ -71,28 +74,27 @@ void Logging::Log(Level level, char const* id, typename Context::type const* con
                                                                                "implementation");
 
     constexpr size_t kDiagnosticStringSize = 256;
-    char             diagnostic_str[kDiagnosticStringSize] {};
+    char             diagnostic_c_str[kDiagnosticStringSize] {};
     size_t           diagnostic_str_length = 0;
 
-    // TODO cache timestamp
-
     // Print the name of the logged instance to the diagnostic string
-    diagnostic_str_length += print_name_of_instance(context_instance, diagnostic_str);
+    diagnostic_str_length += print_name_of_instance(context_instance, diagnostic_c_str);
 
     // Print diagnostic message, if it exists
     if (message)
     {
         std::va_list message_args;
         va_start(message_args, message);
-        diagnostic_str[diagnostic_str_length++] = ',';
-        diagnostic_str_length += protected_vsnprintf((diagnostic_str + diagnostic_str_length),
+        diagnostic_c_str[diagnostic_str_length++] = ',';
+        diagnostic_str_length += protected_vsnprintf((diagnostic_c_str + diagnostic_str_length),
                                                      (kDiagnosticStringSize - diagnostic_str_length), message,
                                                      message_args);
     }
 
     // If the submission's level passes the filter, post it
+    shmit::log::String diagnostic_str {diagnostic_c_str, diagnostic_str_length};
     if (level >= m_threshold)
-        m_logger.Post(Type::eDiagnostics, level, id, Context::kName, diagnostic_str);
+        m_logger.Post(Type::eDiagnostics, level, Context::kName, id, diagnostic_str);
 }
 
 } // namespace diagnostics

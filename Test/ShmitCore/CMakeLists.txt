@@ -1,18 +1,15 @@
-# Set ShmitSource include path
-set(SHMITCORE_INCLUDES
-  ${CMAKE_SOURCE_DIR}/Development/Include
-)
+include(GoogleTest)
 
-set(SHMITCORE_TEST_INCLUDES
+add_library(ShmitCore-Test INTERFACE)
+target_include_directories(ShmitCore-Test
+  INTERFACE
   ${CMAKE_SOURCE_DIR}/Test/Include
 )
 
-# This step marks headers as source files for the benefit of other IDEs (Visual Studio, XCode, etc.).
-# They should pick up on it and add them automatically to the file list.
-# Admittedly, globbing these files is probably not the best solution. This may need to be re-done sometime.
-file(GLOB_RECURSE SHMITCORE_HEADERS
-  "${SHMITCORE_INCLUDE_PATH}/ShmitCore/*.h"
-  "${SHMITCORE_INCLUDE_PATH}/ShmitCore/*.hpp"
+target_link_libraries(ShmitCore-Test
+  INTERFACE
+  ShmitCore
+  ShmitCore-PlatformClock-Native
 )
 
 # Finally, include all subdirectories

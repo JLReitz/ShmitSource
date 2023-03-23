@@ -5,7 +5,7 @@ namespace shmit
 namespace platform
 {
 
-static constexpr bool is_bare_metal()
+inline constexpr bool is_bare_metal()
 {
 #ifdef BARE_METAL_SHMIT
     return true;

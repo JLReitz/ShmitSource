@@ -48,6 +48,8 @@ private:
     /// @param ostream Output stream
     static void PrintArgs(std::ostream& ostream); // Base case
 
+    static Level m_threshold; /*! Data severity threshold */
+
     /// @brief References the currently loaded Logger. By default this is an StdoutLogger on hosted systems and a
     /// VoidLogger when running on bare metal.
     static Logger& m_logger;
@@ -68,7 +70,7 @@ void StaticLogging::Log(Level level, char const* id, typename LoggingContext::ty
                                                                                "class implementation");
 
     constexpr size_t kDataStringSize {256};
-    char             data_str[kDataStringSize] {};
+    char             data_c_str[kDataStringSize] {};
     size_t           data_str_length {0};
 
     std::stringstream data_strstr;
@@ -76,11 +78,13 @@ void StaticLogging::Log(Level level, char const* id, typename LoggingContext::ty
     // TODO cache timestamp
 
     // Print the name of the logged instance to the data string
-    data_str_length += print_name_of_instance(context_ref, data_str);
-    data_strstr << data_str;
+    data_str_length += print_name_of_instance(context_ref, data_c_str);
+    data_strstr << data_c_str;
 
     PrintArgs(data_strstr, args...);
-    LogEntry(level, LoggingContext::kName, id, data_strstr.str().c_str());
+
+    shmit::log::String data_str {data_strstr.str().c_str(), data_strstr.str().length()};
+    m_logger.Post(Type::eDiagnostics, level, LoggingContext::kName, id, data_str);
 }
 
 //  Private ============================================================================================================

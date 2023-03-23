@@ -20,7 +20,7 @@ class VoidLogger : public Logger
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    void Publish(char const* type, char const* level, char const* context, char const* id, char const* msg) final;
+    void Publish(String const& str) final;
 };
 
 } // namespace log

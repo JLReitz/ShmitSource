@@ -316,9 +316,9 @@ public:
     reference operator*() const noexcept;
     pointer   operator->() const noexcept;
 
-    BufferIteratorT& operator++() noexcept;
+    BufferIteratorT  operator++() noexcept;
     BufferIteratorT& operator++(int) noexcept;
-    BufferIteratorT& operator--() noexcept;
+    BufferIteratorT  operator--() noexcept;
     BufferIteratorT& operator--(int) noexcept;
 
     BufferIteratorT& operator+=(difference_type steps) noexcept;
@@ -358,9 +358,9 @@ public:
     reference operator*() const noexcept;
     pointer   operator->() const noexcept;
 
-    ConstBufferIteratorT& operator++() noexcept;
+    ConstBufferIteratorT  operator++() noexcept;
     ConstBufferIteratorT& operator++(int) noexcept;
-    ConstBufferIteratorT& operator--() noexcept;
+    ConstBufferIteratorT  operator--() noexcept;
     ConstBufferIteratorT& operator--(int) noexcept;
 
     ConstBufferIteratorT& operator+=(difference_type steps) noexcept;
@@ -421,10 +421,11 @@ typename BufferIteratorT<T>::pointer BufferIteratorT<T>::operator->() const noex
 }
 
 template<typename T>
-BufferIteratorT<T>& BufferIteratorT<T>::operator++() noexcept
+BufferIteratorT<T> BufferIteratorT<T>::operator++() noexcept
 {
+    BufferIteratorT<T> tmp {*this};
     Increment(1);
-    return *this;
+    return tmp;
 }
 
 template<typename T>
@@ -435,10 +436,11 @@ BufferIteratorT<T>& BufferIteratorT<T>::operator++(int) noexcept
 }
 
 template<typename T>
-BufferIteratorT<T>& BufferIteratorT<T>::operator--() noexcept
+BufferIteratorT<T> BufferIteratorT<T>::operator--() noexcept
 {
+    BufferIteratorT<T> tmp {*this};
     Decrement(1);
-    return *this;
+    return tmp;
 }
 
 template<typename T>
@@ -517,10 +519,11 @@ typename ConstBufferIteratorT<T>::pointer ConstBufferIteratorT<T>::operator->() 
 }
 
 template<typename T>
-ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator++() noexcept
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator++() noexcept
 {
+    ConstBufferIteratorT<T> tmp {*this};
     Increment(1);
-    return *this;
+    return tmp;
 }
 
 template<typename T>
@@ -531,10 +534,11 @@ ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator++(int) noexcept
 }
 
 template<typename T>
-ConstBufferIteratorT<T>& ConstBufferIteratorT<T>::operator--() noexcept
+ConstBufferIteratorT<T> ConstBufferIteratorT<T>::operator--() noexcept
 {
+    ConstBufferIteratorT<T> tmp {*this};
     Decrement(1);
-    return *this;
+    return tmp;
 }
 
 template<typename T>

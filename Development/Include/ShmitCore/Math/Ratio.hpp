@@ -80,10 +80,10 @@ public:
     constexpr Ratio operator+() const noexcept;
     constexpr Ratio operator-() const noexcept;
 
-    constexpr Ratio operator++() noexcept;
-    constexpr Ratio operator++(int) noexcept;
-    constexpr Ratio operator--() noexcept;
-    constexpr Ratio operator--(int) noexcept;
+    constexpr Ratio  operator++() noexcept;
+    constexpr Ratio& operator++(int) noexcept;
+    constexpr Ratio  operator--() noexcept;
+    constexpr Ratio& operator--(int) noexcept;
 
     constexpr Ratio operator+(Ratio const& rhs) const noexcept;
 
@@ -678,7 +678,7 @@ constexpr Ratio Ratio::operator++() noexcept
     return tmp;
 }
 
-constexpr Ratio Ratio::operator++(int) noexcept
+constexpr Ratio& Ratio::operator++(int) noexcept
 {
     numerator += denominator;
 
@@ -693,7 +693,7 @@ constexpr Ratio Ratio::operator--() noexcept
     return tmp;
 }
 
-constexpr Ratio Ratio::operator--(int) noexcept
+constexpr Ratio& Ratio::operator--(int) noexcept
 {
     numerator -= denominator;
 

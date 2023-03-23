@@ -10,15 +10,13 @@ file(GLOB_RECURSE SHMITCORE_HEADERS
   "${SHMITCORE_INCLUDE_PATH}/ShmitCore/*.hpp"
 )
 target_sources(ShmitCore
-  PUBLIC
+  PRIVATE
   ${SHMITCORE_HEADERS}
 )
 
 # Finally, add source subdirectories
 # These will either add to the 'ShmitCore' target or create their own
-# Using 'include' instead of 'add_subdirectory' to lay out a paradigm, get off my back
 add_subdirectory(Containers)
 add_subdirectory(Logging)
 add_subdirectory(Platform)
-add_subdirectory(Time)
 add_subdirectory(Types)

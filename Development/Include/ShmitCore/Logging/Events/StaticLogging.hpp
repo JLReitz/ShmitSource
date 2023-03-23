@@ -71,25 +71,26 @@ void Logging::Log(Level level, char const* id, typename Context::type const* con
                                                                                "implementation");
 
     constexpr size_t kEventStringSize = 256;
-    char             event_str[kEventStringSize] {};
+    char             event_c_str[kEventStringSize] {};
     size_t           event_str_length = 0;
 
     // TODO cache timestamp
 
     // Print the name of the logged instance to the diagnostic string
-    event_str_length += print_name_of_instance(context_instance, event_str);
+    event_str_length += print_name_of_instance(context_instance, event_c_str);
 
     // Print event message, if it exists
     if (message)
     {
         std::va_list message_args;
         va_start(message_args, message);
-        event_str[event_str_length++] = ',';
-        event_str_length += protected_vsnprintf((event_str + event_str_length), (kEventStringSize - event_str_length),
+        event_c_str[event_str_length++] = ',';
+        event_str_length += protected_vsnprintf((event_c_str + event_str_length), (kEventStringSize - event_str_length),
                                                 message, message_args);
     }
 
     // If the submission's level passes the filter, post it
+    String event_str {event_c_str, event_str_length};
     if (level >= m_threshold)
         m_logger.Post(Type::eEvent, level, Context::kName, id, event_str);
 }

@@ -43,7 +43,7 @@ private:
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    void Publish(char const* type, char const* level, char const* context, char const* id, char const* msg) override;
+    void Publish(String const& str) override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,25 +67,12 @@ void OStreamLogger<OStreamType>::Load(OStreamType& ostream)
 //  =============================================================================================================
 
 template<class OStreamType>
-void OStreamLogger<OStreamType>::Publish(char const* type, char const* level, char const* context, char const* id,
-                                         char const* msg)
+void OStreamLogger<OStreamType>::Publish(String const& str)
 {
     if (m_ostream)
     {
         std::lock_guard<std::mutex> scoped_lock(m_ostream_mutex);
-
-        // Insert elements separately, the *hope* (it is very, very likely) is that the compiler will put them in the
-        // correct order
-        *m_ostream << type;
-        *m_ostream << ',';
-        *m_ostream << level;
-        *m_ostream << ',';
-        *m_ostream << context;
-        *m_ostream << ',';
-        *m_ostream << id;
-        *m_ostream << ',';
-        *m_ostream << msg;
-        *m_ostream << "\n";
+        *m_ostream << str;
     }
 }
 

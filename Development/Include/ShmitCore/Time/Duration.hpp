@@ -84,42 +84,241 @@ public:
     constexpr Duration& operator=(Duration const& rhs) noexcept;
     constexpr Duration& operator=(Duration&& rhs) noexcept;
 
-    template<class Denomination1, class Denomination2>
-    friend constexpr Duration<Denomination2> duration_cast(Duration<Denomination1> const& rhs) noexcept;
+    template<class DenominationOut, class DenominationIn>
+    friend constexpr Duration<DenominationOut> duration_cast(Duration<DenominationIn> const& rhs) noexcept;
 
 private:
     Rep m_count {0};
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Explicit specializations of Duration            ////////////////////////////////////////////////////////////////////
+//  Explicit specializations of Duration ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline namespace fixed
 {
-
-using Nanoseconds  = Duration<Nanosecond<intmax_t>>;
-using Microseconds = Duration<Microsecond<intmax_t>>;
-using Milliseconds = Duration<Millisecond<intmax_t>>;
-using Seconds      = Duration<Second<intmax_t>>;
-using Minutes      = Duration<Minute<intmax_t>>;
-using Hours        = Duration<Hour<intmax_t>>;
-using Days         = Duration<Day<intmax_t>>;
+using Nanoseconds  = Duration<fixed::Nanosecond>;
+using Microseconds = Duration<fixed::Microsecond>;
+using Milliseconds = Duration<fixed::Millisecond>;
+using Seconds      = Duration<fixed::Second>;
+using Minutes      = Duration<fixed::Minute>;
+using Hours        = Duration<fixed::Hour>;
+using Days         = Duration<fixed::Day>;
 
 } // namespace fixed
 
 namespace floating
 {
 
-using Nanoseconds  = Duration<Nanosecond<double>>;
-using Microseconds = Duration<Microsecond<double>>;
-using Milliseconds = Duration<Millisecond<double>>;
-using Seconds      = Duration<Second<double>>;
-using Minutes      = Duration<Minute<double>>;
-using Hours        = Duration<Hour<double>>;
-using Days         = Duration<Day<double>>;
+using Nanoseconds  = Duration<floating::Nanosecond>;
+using Microseconds = Duration<floating::Microsecond>;
+using Milliseconds = Duration<floating::Millisecond>;
+using Seconds      = Duration<floating::Second>;
+using Minutes      = Duration<floating::Minute>;
+using Hours        = Duration<floating::Hour>;
+using Days         = Duration<floating::Day>;
 
 } // namespace floating
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  Duration constructor definitions            ////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//  Public      ========================================================================================================
+
+template<class Denomination>
+constexpr Duration<Denomination>::Duration(typename Duration<Denomination>::Rep const& count) noexcept : m_count {count}
+{
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>::Duration(Duration<Denomination> const& rhs) noexcept : Duration(rhs.m_count)
+{
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>::Duration(Duration&& rhs) noexcept : Duration(rhs.m_count)
+{
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  Duration method definitions in alphabetical order       ////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//  Public      ========================================================================================================
+
+template<class Denomination>
+constexpr typename Duration<Denomination>::Rep Duration<Denomination>::Count() const noexcept
+{
+    return m_count;
+}
+
+template<class Denomination>
+template<typename T>
+constexpr T Duration<Denomination>::CountInSeconds() const noexcept
+{
+    static_assert(std::is_arithmetic_v<T>, "T must be arithmetic fundamental type");
+
+    constexpr math::Ratio conversion = CountsPerSecond::Value();
+
+    T rep_count = static_cast<T>(m_count) * conversion;
+    return rep_count;
+}
+
+template<class Denomination>
+constexpr bool Duration<Denomination>::operator==(Duration<Denomination> const& rhs) const noexcept
+{
+    return m_count == rhs.m_count;
+}
+
+template<class Denomination>
+constexpr bool Duration<Denomination>::operator!=(Duration<Denomination> const& rhs) const noexcept
+{
+    return !(*this == rhs);
+}
+
+template<class Denomination>
+constexpr Duration<Denomination> Duration<Denomination>::operator+() const noexcept
+{
+    return *this;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination> Duration<Denomination>::operator-() const noexcept
+{
+    return Duration(-m_count);
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator++() noexcept
+{
+    Duration tmp = *this;
+    m_count += 1;
+    return tmp;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator++(int) noexcept
+{
+    m_count += 1;
+    return *this;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator--() noexcept
+{
+    Duration tmp = *this;
+    m_count -= 1;
+    return tmp;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator--(int) noexcept
+{
+    m_count -= 1;
+    return *this;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination> Duration<Denomination>::operator+(Duration<Denomination> const& rhs) const noexcept
+{
+    Duration tmp = *this;
+    tmp.m_count += rhs.m_count;
+    return tmp;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination> Duration<Denomination>::operator-(Duration<Denomination> const& rhs) const noexcept
+{
+    Duration tmp = *this;
+    tmp.m_count -= rhs.m_count;
+    return tmp;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination> Duration<Denomination>::operator%(Duration<Denomination> const& rhs) const noexcept
+{
+    Duration tmp = *this;
+    tmp.m_count %= rhs.m_count;
+    return tmp;
+}
+
+template<class Denomination>
+template<typename T>
+constexpr Duration<Denomination> Duration<Denomination>::operator*(T rhs) const noexcept
+{
+    static_assert(std::is_arithmetic_v<T>, "'T' type must be arithmetic fundamental type");
+
+    Duration tmp = *this;
+    tmp.m_count *= rhs;
+    return tmp;
+}
+
+template<class Denomination>
+template<typename T>
+constexpr Duration<Denomination> Duration<Denomination>::operator/(T rhs) const noexcept
+{
+    static_assert(std::is_arithmetic_v<T>, "'T' must be arithmetic fundamental type");
+
+    Duration tmp = *this;
+    tmp.m_count /= rhs;
+    return tmp;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator+=(Duration<Denomination> const& rhs) noexcept
+{
+    m_count += rhs.m_count;
+    return *this;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator-=(Duration<Denomination> const& rhs) noexcept
+{
+    m_count -= rhs.m_count;
+    return *this;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator%=(Duration<Denomination> const& rhs) noexcept
+{
+    m_count %= rhs.m_count;
+    return *this;
+}
+
+template<class Denomination>
+template<typename T>
+constexpr Duration<Denomination>& Duration<Denomination>::operator*=(T rhs) noexcept
+{
+    static_assert(std::is_arithmetic_v<T>, "'T' type must be arithmetic fundamental type");
+
+    m_count *= rhs;
+    return *this;
+}
+
+template<class Denomination>
+template<typename T>
+constexpr Duration<Denomination>& Duration<Denomination>::operator/=(T rhs) noexcept
+{
+    static_assert(std::is_arithmetic_v<T>, "'T' type must be arithmetic fundamental type");
+
+    m_count /= rhs;
+    return *this;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator=(Duration<Denomination> const& rhs) noexcept
+{
+    m_count = rhs.m_count;
+    return *this;
+}
+
+template<class Denomination>
+constexpr Duration<Denomination>& Duration<Denomination>::operator=(Duration<Denomination>&& rhs) noexcept
+{
+    m_count = rhs.m_count;
+    return *this;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Namespace function definitions in alphabetical order        ////////////////////////////////////////////////////////
@@ -128,27 +327,17 @@ using Days         = Duration<Day<double>>;
 /**!
  * @brief Transforms a Duration from one Denomination to another
  *
- * @tparam Denomination1 Starting denomination
- * @tparam Denomination2 Ending denomination
+ * @tparam DenominationOut Resulting denomination
+ * @tparam DenominationIn Starting denomination
  * @param[in] duration Duration to cast
- * @return Duration<Denomination2> Cast Duration
+ * @return Duration<DenominationOut> Cast Duration
  */
-template<class Denomination1, class Denomination2>
-inline constexpr Duration<Denomination2> duration_cast(Duration<Denomination1> const& duration) noexcept
+template<class DenominationOut, class DenominationIn>
+inline constexpr Duration<DenominationOut> duration_cast(Duration<DenominationIn> const& duration) noexcept
 {
-    using ResultRep = typename Denomination2::Rep;
-    using Ratio1    = typename Denomination1::ToBase;
-    using Ratio2    = typename Denomination2::ToBase;
-
-    // Divide starting Denomination's conversion rate by the end Denomination's to get the transformation
-    using Transformation                 = typename math::divide<Ratio1, Ratio2>::Result;
-    constexpr math::Ratio transformation = Transformation::value;
-
-    // Cast quantifying value to the end Denomination's representation then perform value transformation
-    ResultRep rep_count    = static_cast<ResultRep>(duration.m_count);
-    ResultRep result_count = rep_count * transformation;
-
-    return Duration<Denomination2>(result_count);
+    using ResultRep  = typename DenominationOut::Rep;
+    ResultRep result = math::denomination_cast<DenominationOut, DenominationIn>(duration.m_count);
+    return Duration<DenominationOut> {result};
 }
 
 } // namespace time

@@ -25,7 +25,7 @@ public:
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    void Post(Type type, Level level, char const* context, char const* id, char const* msg);
+    void Post(Type type, Level level, String const& context, String const& id, String const& msg);
 
     /// @brief Fetches the level threshold for this Logger
     /// @return Log level
@@ -42,7 +42,7 @@ private:
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    virtual void Publish(char const* type, char const* level, char const* context, char const* id, char const* msg) = 0;
+    virtual void Publish(String const& str) = 0;
 
     Level m_threshold {Level::eTrace}; //!< Logger level threshold (default = 'eTrace')
 };

@@ -11,14 +11,10 @@ namespace log
 
 //  Public  ============================================================================================================
 
-void VoidLogger::Publish(char const* type, char const* level, char const* context, char const* id, char const* msg)
+void VoidLogger::Publish(String const& str)
 {
     // Do nothing
-    (void)type;    // Unused
-    (void)level;   // Unused
-    (void)context; // Unused
-    (void)id;      // Unused
-    (void)msg;     // Unused
+    (void)str; // Unused
 }
 
 } // namespace log

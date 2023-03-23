@@ -1,5 +1,7 @@
 #pragma once
 
+#include "String.hpp"
+
 #include <ShmitCore/Types/StdTypes.hpp>
 #include <ShmitCore/Types/Traits/Named.hpp>
 
@@ -17,8 +19,8 @@ namespace log
 #define ESTABLISH_LOGGING_CONTEXT(name) \
     struct LoggingContext \
     { \
-        using type                         = std::conditional_t<std::is_class_v<name>, name, void>; \
-        static constexpr char const* kName = #name; \
+        using type = std::conditional_t<std::is_class_v<name>, name, void>; \
+        static constexpr shmit::log::String kName {#name}; \
     }; \
     using LoggingContext_t = typename LoggingContext::type; \
     static constexpr LoggingContext kLoggingContext {};
