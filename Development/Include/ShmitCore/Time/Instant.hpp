@@ -18,6 +18,9 @@ public:
 
     using Rep = typename Clock::TimeRep;
 
+    using TicksPerSecond    = math::StaticRatio<Clock::kFrequencyHz, 1>;
+    using ClockDenomination = math::Denomination<Rep, TicksPerSecond>;
+
     Instant() = default;
     Instant(Rep const& ticks) noexcept;
 
@@ -31,19 +34,13 @@ public:
     bool operator!=(Instant const& rhs);
 
     bool operator>(Instant const& rhs) const noexcept;
-
     bool operator>=(Instant const& rhs) const noexcept;
-
     bool operator<(Instant const& rhs) const noexcept;
-
     bool operator<=(Instant const& rhs) const noexcept;
 
-    Instant operator++() noexcept;
-
+    Instant  operator++() noexcept;
     Instant& operator++(int) noexcept;
-
-    Instant operator--() noexcept;
-
+    Instant  operator--() noexcept;
     Instant& operator--(int) noexcept;
 
     template<class Denomination>
@@ -68,9 +65,6 @@ public:
     friend Instant<ClockOut> instant_cast(Instant const& instant) noexcept;
 
 private:
-    using ClockTicksPerSecond = math::StaticRatio<Clock::kFrequencyHz, 1>;
-    using ClockDenomination   = math::Denomination<Rep, ClockTicksPerSecond>;
-
     Rep m_ticks {0};
 };
 

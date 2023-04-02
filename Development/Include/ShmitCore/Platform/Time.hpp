@@ -16,7 +16,7 @@ public:
     static time::Instant<Clock> now();
 };
 
-using TimeInstant = time::Instant<Clock>;
+using Instant = time::Instant<Clock>;
 
 } // namespace platform
 } // namespace shmit
