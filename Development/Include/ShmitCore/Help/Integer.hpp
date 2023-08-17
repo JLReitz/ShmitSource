@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/Types/StdTypes.hpp>
+#include <ShmitCore/StdTypes.hpp>
 
 namespace shmit
 {

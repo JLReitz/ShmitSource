@@ -1,1 +1,0 @@
-#include <ShmitCore/Logging/Common.hpp>

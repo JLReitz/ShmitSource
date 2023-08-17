@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShmitCore/Types/StdTypes.hpp>
+#include <ShmitCore/StdTypes.hpp>
 
 #include <algorithm>
 #include <string_view>
@@ -172,7 +172,7 @@ template<typename T, std::enable_if_t<std::is_pointer_v<T>>* = nullptr>
 inline std::to_chars_result print(char* const str, size_t str_max_length, T const& value)
 {
     uintptr_t ptr_value {static_cast<uintptr_t>(value)};
-    return std::to_chars(str, str + str_max_length, ptr_value, 10);
+    return std::to_chars(str, str + str_max_length, ptr_value, 16);
 }
 
 } // namespace detail

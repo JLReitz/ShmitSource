@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.hpp"
+#include "Posit.hpp"
 
 namespace shmit
 {
@@ -25,7 +26,7 @@ public:
     /// @param[in] id Log ID
     /// @param[in] context Log context
     /// @param[in] msg Log message
-    void Post(Type type, Level level, String const& context, String const& id, String const& msg);
+    virtual void Post(Posit const& posit) = 0;
 
     /// @brief Fetches the level threshold for this Logger
     /// @return Log level
@@ -36,14 +37,6 @@ public:
     void SetThreshold(Level threshold);
 
 private:
-    /// @brief Publishes an entry
-    /// @param[in] type Log type
-    /// @param[in] level Log level
-    /// @param[in] id Log ID
-    /// @param[in] context Log context
-    /// @param[in] msg Log message
-    virtual void Publish(String const& str) = 0;
-
     Level m_threshold {Level::eTrace}; //!< Logger level threshold (default = 'eTrace')
 };
 

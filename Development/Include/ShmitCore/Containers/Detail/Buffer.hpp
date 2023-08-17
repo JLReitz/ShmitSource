@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ShmitCore/Logging/Diagnostics.hpp>
-#include <ShmitCore/Types/StdTypes.hpp>
-#include <ShmitCore/Types/Traits/Named.hpp>
+#include <ShmitCore/Named.hpp>
+#include <ShmitCore/StdTypes.hpp>
 
 #include <iterator>
 #include <limits>

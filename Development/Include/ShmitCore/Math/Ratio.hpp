@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Algorithms/StdAlgorithms.hpp"
 #include "StaticArithmetic.hpp"
+#include "StdAlgorithms.hpp"
 
-#include <ShmitCore/Types/StdTypes.hpp>
+#include <ShmitCore/StdTypes.hpp>
 
 #include <numeric>
 #include <ratio>

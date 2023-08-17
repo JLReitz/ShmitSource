@@ -9,9 +9,13 @@ file(GLOB_RECURSE SHMITCORE_HEADERS
   "${SHMITCORE_INCLUDE_PATH}/ShmitCore/*.h"
   "${SHMITCORE_INCLUDE_PATH}/ShmitCore/*.hpp"
 )
+
+# Target top level sources and all headers to ShmitCore
 target_sources(ShmitCore
   PRIVATE
   ${SHMITCORE_HEADERS}
+  PUBLIC
+  Named.cpp
 )
 
 # Finally, add source subdirectories
@@ -19,4 +23,3 @@ target_sources(ShmitCore
 add_subdirectory(Containers)
 add_subdirectory(Logging)
 add_subdirectory(Platform)
-add_subdirectory(Types)

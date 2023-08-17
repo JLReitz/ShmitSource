@@ -20,7 +20,7 @@
                 "STM32F407xx",
                 "EMBEDDED_PLATFORM"
             ],
-            "compilerPath": "/opt/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-g++",
+            "compilerPath": "/Applications/ARM/bin/arm-none-eabi-g++",
             "cStandard": "gnu11",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "${default}"

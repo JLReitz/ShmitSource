@@ -53,6 +53,11 @@ public:
     constexpr bool operator==(Duration const& rhs) const noexcept;
     constexpr bool operator!=(Duration const& rhs) const noexcept;
 
+    constexpr bool operator>(Duration const& rhs) const noexcept;
+    constexpr bool operator>=(Duration const& rhs) const noexcept;
+    constexpr bool operator<(Duration const& rhs) const noexcept;
+    constexpr bool operator<=(Duration const& rhs) const noexcept;
+
     constexpr Duration operator+() const noexcept;
     constexpr Duration operator-() const noexcept;
 
@@ -92,11 +97,12 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Explicit specializations of Duration ////////////////////////////////////////////////////////////////////
+//  Explicit specializations of Duration            ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline namespace fixed
 {
+
 using Nanoseconds  = Duration<fixed::Nanosecond>;
 using Microseconds = Duration<fixed::Microsecond>;
 using Milliseconds = Duration<fixed::Millisecond>;
@@ -168,13 +174,37 @@ constexpr T Duration<Denomination>::CountInSeconds() const noexcept
 template<class Denomination>
 constexpr bool Duration<Denomination>::operator==(Duration<Denomination> const& rhs) const noexcept
 {
-    return m_count == rhs.m_count;
+    return (m_count == rhs.m_count);
 }
 
 template<class Denomination>
 constexpr bool Duration<Denomination>::operator!=(Duration<Denomination> const& rhs) const noexcept
 {
     return !(*this == rhs);
+}
+
+template<class Denomination>
+constexpr bool Duration<Denomination>::operator>(Duration const& rhs) const noexcept
+{
+    return (m_count > rhs.m_count);
+}
+
+template<class Denomination>
+constexpr bool Duration<Denomination>::operator>=(Duration const& rhs) const noexcept
+{
+    return (m_count >= rhs.m_count);
+}
+
+template<class Denomination>
+constexpr bool Duration<Denomination>::operator<(Duration const& rhs) const noexcept
+{
+    return !(*this >= rhs);
+}
+
+template<class Denomination>
+constexpr bool Duration<Denomination>::operator<=(Duration const& rhs) const noexcept
+{
+    return !(*this > rhs);
 }
 
 template<class Denomination>

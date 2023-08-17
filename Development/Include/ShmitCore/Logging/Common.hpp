@@ -1,31 +1,14 @@
 #pragma once
 
-#include "String.hpp"
-
-#include <ShmitCore/Types/StdTypes.hpp>
-#include <ShmitCore/Types/Traits/Named.hpp>
-
-#include <type_traits>
+#include "Element.hpp"
 
 namespace shmit
 {
 namespace log
 {
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Logging context declaration             ////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#define ESTABLISH_LOGGING_CONTEXT(name) \
-    struct LoggingContext \
-    { \
-        using type = std::conditional_t<std::is_class_v<name>, name, void>; \
-        static constexpr shmit::log::String kName {#name}; \
-    }; \
-    using LoggingContext_t = typename LoggingContext::type; \
-    static constexpr LoggingContext kLoggingContext {};
-
-#define INHERIT_LOGGING_CONTEXT() using LoggingContext = decltype(kLoggingContext);
+template<typename Context, typename Posit>
+inline void Make
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Commonly used log IDs           ////////////////////////////////////////////////////////////////////////////////////
@@ -46,47 +29,6 @@ static constexpr char const* kBadAllocation = "bad-allocation";
 static constexpr char const* kBadMove       = "bad-move";
 
 } // namespace ids
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Metafunction definitions            ////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**!
- * @brief Default (failed) check for if a type contains a logging context
- *
- * @tparam T Any type
- * @tparam typename (anonymous) Defaults to void
- */
-template<class T, typename = void>
-struct has_logging_context : public std::false_type
-{
-};
-
-/**!
- * @brief Successful check for if a type contains a logging context
- *
- * @tparam T Any type which has established a logging context within
- */
-template<class T>
-struct has_logging_context<T, typename T::LoggingContext> : public std::true_type
-{
-};
-
-/**!
- * @brief Accesses the returned type from has_logging_context
- *
- * @tparam T Any type
- */
-template<class T>
-using has_logging_context_t = typename has_logging_context<T>::type;
-
-/**!
- * @brief Accesses the returned value from has_logging_context
- *
- * @tparam T Any type
- */
-template<class T>
-inline constexpr bool has_logging_context_v = has_logging_context<T>::value;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Logging type declarations           ////////////////////////////////////////////////////////////////////////////////
@@ -207,37 +149,5 @@ inline constexpr const char* TypeToString(Type type)
     return detail::unknownValueStr;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  Base logging interface                  ////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class Logger; // Forward declaration
-
-namespace detail
-{
-
-class LoggingInterface
-{
-public:
-    /**!
-     * @brief Replaces the current event logger with a new one
-     *
-     * @param[in] logger Logger instance
-     */
-    static void LoadLogger(Logger& logger);
-
-    /**!
-     * @brief Set the severity threshold for event logs
-     *
-     * @param[in] level Severity threshold
-     */
-    static void SetThreshold(Level level);
-
-private:
-    static Level   m_threshold; /*! Diagnostics severity threshold */
-    static Logger& m_logger;    /*! Event logger */
-};
-
-} // namespace detail
 } // namespace log
 } // namespace shmit

@@ -21,12 +21,12 @@ struct ProgramStartTime
     Clock::TimeRep posix {0};
 } gProgramStartTime;
 
-time::Instant<Clock> Clock::now() // Static method
+Clock::Instant Clock::Now() // Static method
 {
     stl_duration duration_since_posix_epoch {
         std::chrono::duration_cast<stl_duration>(std::chrono::system_clock::now().time_since_epoch())};
     TimeRep program_run_duration = duration_since_posix_epoch.count() - gProgramStartTime.posix;
-    return time::Instant<Clock> {program_run_duration};
+    return Instant {program_run_duration};
 }
 
 } // namespace platform

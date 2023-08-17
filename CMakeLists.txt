@@ -15,6 +15,7 @@ set(C_FLAGS -Wstrict-prototypes -Wtraditional)
 set(CXX_FLAGS -Wreorder)
 
 # Include google test using FetchContent
+message(STATUS "Fetching google test")
 include(FetchContent)
 FetchContent_Declare(
   googletest

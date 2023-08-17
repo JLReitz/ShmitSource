@@ -364,38 +364,53 @@ public:
     }
 };
 
+template<char const* Str>
+class StrWrap
+{
+public:
+    static char const* GetStr() const
+    {
+        return str;
+    }
+};
+
 using CountString = FormatString<int, double, char>;
 using CString     = FormatString<>;
 using ErrorString = FormatString<unsigned int, volatile double>;
+
+constexpr char const* test_str = "Hello World";
+using TestStr                  = StrWrap<test_str>;
 
 int main()
 {
     // static_assert(std::is_integral_v<float>, "Sanity check");
     // using hex = typename base::Hexadecimal<double>::type;
 
-    char const* test = "12k}jdbsiub{}ashj";
-    int         val  = std::atoi(test);
+    // char const* test = "12k}jdbsiub{}ashj";
+    // int         val  = std::atoi(test);
 
-    std::cout << val << std::endl;
+    // std::cout << val << std::endl;
 
-    bool is_signed = std::is_signed_v<bool>;
-    std::cout << is_signed << std::endl;
+    // bool is_signed = std::is_signed_v<bool>;
+    // std::cout << is_signed << std::endl;
 
-    size_t signed_digits   = std::numeric_limits<int>::digits10;
-    size_t unsigned_digits = std::numeric_limits<unsigned int>::digits10;
-    size_t hex_digits      = max_digits_for_type<base::Hexadecimal<int>>::value;
+    // size_t signed_digits   = std::numeric_limits<int>::digits10;
+    // size_t unsigned_digits = std::numeric_limits<unsigned int>::digits10;
+    // size_t hex_digits      = max_digits_for_type<base::Hexadecimal<int>>::value;
 
-    std::cout << signed_digits << " " << unsigned_digits << " " << hex_digits << std::endl;
+    // std::cout << signed_digits << " " << unsigned_digits << " " << hex_digits << std::endl;
 
-    bool char_ptr_signed = std::is_signed_v<char*>;
-    bool int_ptr_signed  = std::is_signed_v<int*>;
+    // bool char_ptr_signed = std::is_signed_v<char*>;
+    // bool int_ptr_signed  = std::is_signed_v<int*>;
 
-    std::cout << char_ptr_signed << " " << int_ptr_signed << std::endl;
+    // std::cout << char_ptr_signed << " " << int_ptr_signed << std::endl;
 
-    ErrorString err;
-    for (auto entry : err.kEntries)
-        std::cout << entry.max_size << " ";
-    std::cout << std::endl;
+    // ErrorString err;
+    // for (auto entry : err.kEntries)
+    //     std::cout << entry.max_size << " ";
+    // std::cout << std::endl;
+
+    std::cout << TestStr::GetStr() << std::endl;
 
     return 0;
 }
