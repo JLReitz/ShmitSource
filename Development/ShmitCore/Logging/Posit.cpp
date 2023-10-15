@@ -6,11 +6,11 @@ namespace shmit
 namespace log
 {
 
-Posit::Posit(StringConstantId type_id, Level severity, std::basic_string_view<Payload::char_type> payload_buffer)
+Posit::Posit(StringConstantId type_id, Level severity, std::basic_string_view<Packet::char_type> payload_buffer)
     : m_payload_buffer {payload_buffer}
 {
     // Header starts behind the prefix string
-    Header* header {reinterpret_cast<Header*>(m_payload_buffer.data() + Payload::kPrefixStr.size())};
+    Header* header {reinterpret_cast<Header*>(m_payload_buffer.data() + Packet::kPrefixStr.size())};
 
     // Populate timestamp
     time::Microseconds now_us {platform::Clock::Now().DurationSinceEpoch(time::Microsecond())};
@@ -19,8 +19,8 @@ Posit::Posit(StringConstantId type_id, Level severity, std::basic_string_view<Pa
     // Populate payload size
     // Cap the encoded value at the maximum, it is okay that the original buffer remains its original size
     size_t payload_size {m_payload_buffer.size()};
-    if (payload_size > Payload::kMaxSize)
-        payload_size = Payload::kMaxSize;
+    if (payload_size > Packet::kMaxSize)
+        payload_size = Packet::kMaxSize;
     header->packet_size = payload_size;
 
     // Populate type ID and severity

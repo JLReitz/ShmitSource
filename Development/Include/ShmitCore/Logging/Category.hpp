@@ -9,13 +9,16 @@ namespace log
 namespace detail
 {
 
-template<typename Label>
+template<typename LabelT>
 struct Category
 {
-    static_assert(is_string_constant_v<Label>, "shmit::log::Category Label parameter must be specialization of "
-                                               "shmit::StringConstant");
+    static_assert(is_string_constant_v<LabelT>, "shmit::log::Category LabelT parameter must be specialization of "
+                                                "shmit::StringConstant");
 
-    static StringConstantId const kLabelId {Label::kId};
+    using type  = Category<LabelT>;
+    using Label = typename LabelT::type;
+
+    static StringConstantId const kLabelTId {LabelT::kId};
 };
 
 template<typename T>
@@ -24,8 +27,8 @@ struct is_category : public std::false_type
     using type = std::false_type;
 };
 
-template<typename Label>
-struct is_category<Category<Label>> : public std::true_type
+template<typename LabelT>
+struct is_category<Category<LabelT>> : public std::true_type
 {
     using type = std::true_type;
 };

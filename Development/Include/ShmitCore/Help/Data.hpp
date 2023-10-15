@@ -49,16 +49,16 @@ struct DataPack
 template<typename Underlying, typename... T>
 void encode_data_pack(DataPack<Underlying, T...>& data_pack, const T&... args);
 
-template<typename... Args, typename Func, std::size_t... Indices>
-void tuple_for_each(const std::tuple<Args...>& t, Func&& func, std::index_sequence<Indices...>)
+template<typename... ArgsT, typename Func, std::size_t... Indices>
+void tuple_for_each(const std::tuple<ArgsT...>& t, Func&& func, std::index_sequence<Indices...>)
 {
     (func(std::get<Indices>(t)), ...);
 }
 
-template<typename... Args, typename Func>
-void tuple_for_each(const std::tuple<Args...>& t, Func&& func)
+template<typename... ArgsT, typename Func>
+void tuple_for_each(const std::tuple<ArgsT...>& t, Func&& func)
 {
-    tuple_for_each(t, std::forward<Func>(func), std::index_sequence_for<Args...>());
+    tuple_for_each(t, std::forward<Func>(func), std::index_sequence_for<ArgsT...>());
 }
 
 } // namespace detail

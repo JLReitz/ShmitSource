@@ -5,7 +5,6 @@ add_subdirectory(Events)
 
 target_sources(ShmitCore
     PRIVATE
-    Logger.cpp
     StdoutLogger.cpp
     String.cpp
     VoidLogger.cpp

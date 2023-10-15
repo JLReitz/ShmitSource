@@ -1,6 +1,6 @@
 #pragma once
 
-#include "StaticInterface.hpp"
+#include "detail/StaticInterface.hpp"
 
 namespace shmit
 {
@@ -9,7 +9,7 @@ namespace log
 namespace detail
 {
 
-using EventsCategoryLabel = StringConstant<char, 'e', 'v', 'e', 'n', 't', 's'>;
+using EventsCategoryLabel = decltype("events"_ssc);
 using EventsCategory      = Category<EventsCategoryLabel>;
 
 } // namespace detail
@@ -18,7 +18,7 @@ using EventsCategory      = Category<EventsCategoryLabel>;
 //  Events logging interface                                ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-using Events = StaticInterface<detail::EventsCategory>;
+using Events = detail::StaticInterface<detail::EventsCategory>;
 
 } // namespace log
 } // namespace shmit

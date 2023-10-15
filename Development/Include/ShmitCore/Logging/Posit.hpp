@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Common.hpp"
-#include "Element.hpp"
+#include "Types.hpp"
 
 #include <limits>
 #include <streambuf>
@@ -11,30 +10,23 @@ namespace shmit
 namespace log
 {
 
-struct Posit
+class Posit
 {
     using TimeStamp = uint64_t;
 
     struct Header
     {
-        using PayloadSizeType = uint16_t;
+        using Size = uint16_t;
 
-        PayloadSizeType  packet_size;
+        Size             packet_size;
         TimeStamp        timestamp;
         StringConstantId type_id;
-        Level            severity;
-    };
-
-    struct ElementHeader
-    {
-        StringConstantId tag_id;
-        StringConstantId string_id;
+        Severity         severity;
     };
 
     constexpr static size_t kHeaderSize {help::DataSize_v<Header>};
-    constexpr static size_t kElementHeaderSize {help::DataSize_v<ElementHeader>};
 
-    class Payload final : public std::basic_streambuf<uint8_t>
+    class Packet final : public std::basic_streambuf<uint8_t>
     {
     public:
         using StreamBuf = std::basic_streambuf<uint8_t>;
@@ -50,14 +42,14 @@ struct Posit
         constexpr static std::string_view kPrefixStr {"\\P{"};
         constexpr static std::string_view kPostfixStr {"}\\"};
 
-        constexpr static size_t kMinSize {kPrefixStr.size() + Posit::kHeaderSize + (Posit::kElementHeaderSize * 2) +
+        constexpr static size_t kMinSize {kPrefixStr.size() + Posit::kHeaderSize + (detail::kElementHeaderSize * 2) +
                                           kPostfixStr.size()};
-        constexpr static size_t kMaxSize {std::numeric_limits<Posit::Header::PayloadSizeType>::max()};
+        constexpr static size_t kMaxSize {std::numeric_limits<Posit::Header::Size>::max()};
 
-        Payload() = delete;
+        Packet() = delete;
 
         // TODO populate prefix and postfix strings
-        Payload(std::basic_string_view<const_char_type> buffer);
+        Packet(std::basic_string_view<const_char_type> buffer);
 
     private:
         /**
@@ -94,15 +86,17 @@ struct Posit
     };
 
     // New
-    Posit(StringConstantId type_id, Level severity, std::basic_string_view<Payload::char_type> payload_buffer);
+    Posit(StringConstantId type_id, Severity severity, std::basic_string_view<Packet::char_type> payload_buffer);
 
-    TimeStamp           Timestamp() const noexcept;
-    Level               Severity() const noexcept;
-    Payload::char_type* ElementStart() const noexcept;
+    size_t Size() const noexcept;
 
-    Payload GetPayload() const noexcept;
+    TimeStamp          GetTimestamp() const noexcept;
+    Severity           GetSeverity() const noexcept;
+    Packet::char_type* GetStartOfData() const noexcept;
 
-    std::basic_string_view<Payload::char_type> m_payload_buffer;
+    Packet GetPayload() const noexcept;
+
+    std::basic_string_view<Packet::char_type> m_payload_buffer;
 };
 
 } // namespace log
